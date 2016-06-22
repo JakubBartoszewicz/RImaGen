@@ -1,0 +1,17 @@
+Package: RImaGen
+Type: Package
+Title: Fast Voxelwise Genome-Wide Association Studies in R
+Version: 0.1.0
+Author: Jakub Bartoszewicz
+Maintainer: Jakub Bartoszewicz <kuba.bartoszewicz@gmail.com>
+Description: Allows performing fast vGWAS analyses as described in Stein
+    et al., 2010.
+License: GPL-3 | file LICENSE
+LazyData: TRUE
+Imports:
+    fslr,
+    MatrixEQTL,
+    snpStats,
+    qvalue,
+    parallel
+RoxygenNote: 5.0.1
