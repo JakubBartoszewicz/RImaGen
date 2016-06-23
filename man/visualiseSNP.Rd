@@ -4,9 +4,9 @@
 \alias{visualiseSNP}
 \title{Visualise by-voxel statistics for a chosen SNP, e.g that SNP's p-value per voxel.}
 \usage{
-visualiseSNP(snp.name, results, mask, mdt, log.cutoff = 0, plot = TRUE,
+visualiseSNP(snp.name, results, mask, ref.img, log.cutoff = 0, plot = TRUE,
   title = snp.name, titleSize = 1, beforeTitle = "-log10 p-values by\\n",
-  afterTitle = "", outPath = NULL)
+  afterTitle = "", outPath = NULL, matPath = NULL)
 }
 \arguments{
 \item{snp.name}{Chosen SNP name.}
@@ -15,7 +15,7 @@ visualiseSNP(snp.name, results, mask, mdt, log.cutoff = 0, plot = TRUE,
 
 \item{mask}{Image mask (a \code{nifti} object or an array).}
 
-\item{mdt}{Reference image.}
+\item{ref.img}{Reference image.}
 
 \item{log.cutoff}{Negative log p-value cutoff value.}
 
@@ -30,6 +30,8 @@ visualiseSNP(snp.name, results, mask, mdt, log.cutoff = 0, plot = TRUE,
 \item{afterTitle}{Text to print after the title.}
 
 \item{outPath}{Output path. If \code{NULL} (default) no plot files will be saved.}
+
+\item{matPath}{Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.}
 }
 \value{
 Results visualisation image.

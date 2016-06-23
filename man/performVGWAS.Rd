@@ -4,18 +4,21 @@
 \alias{performVGWAS}
 \title{Perform voxelwise genome-wide association study.}
 \usage{
-performVGWAS(genePath, brainPath, mdtPath, maskPath, infoPath, subFactor,
-  outResolution = 2^(subFactor - 1), outPath = NULL, force.snps = NULL,
-  useModel = modelLINEAR, top.thresh = 5, log.cutoff = 4,
-  eff.no.tests = 275575, sampleSize = NULL, mockPath = NULL,
-  verbose.gwas = FALSE)
+performVGWAS(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, infoPath,
+  subFactor, covar = character(), errorCovariance = numeric(),
+  out.subFactor = subFactor, matPath = NULL, outPath = NULL,
+  force.snps = NULL, useModel = modelLINEAR, top.thresh = 5,
+  log.cutoff = 4, eff.no.tests = 275575, sampleSize = NULL,
+  randomSample = FALSE, mockPath = NULL)
 }
 \arguments{
 \item{genePath}{Path to a directory containing plink files with genomic data.}
 
-\item{brainPath}{Path to a directory containing imaging data.}
+\item{niiFiles}{Paths to files containing imaging data.}
 
-\item{mdtPath}{Path to a referance image.}
+\item{niiIDs}{Subject IDs for each image. Shuffle for permutation tests.}
+
+\item{ref.imgPath}{Path to a referance image.}
 
 \item{maskPath}{Path to an image mask.}
 
@@ -23,7 +26,13 @@ performVGWAS(genePath, brainPath, mdtPath, maskPath, infoPath, subFactor,
 
 \item{subFactor}{Downsampling factor.}
 
-\item{outResolution}{Output images resolution.}
+\item{covar}{Covariates matrix with subject IDs as column names.}
+
+\item{errorCovariance}{Covariance matrix for the error term. Set to \code{numeric()} for multiple of identity (default, most cases).}
+
+\item{out.subFactor}{Output images downsampling factor. Default: \code{max(1, subFactor-1)}.}
+
+\item{matPath}{Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.}
 
 \item{outPath}{Path to output directory.}
 
@@ -39,9 +48,13 @@ performVGWAS(genePath, brainPath, mdtPath, maskPath, infoPath, subFactor,
 
 \item{sampleSize}{Subject sample size.}
 
-\item{mockPath}{Path to input directory with saved objects for vGWAS mocking. Mock parameters should match  original parameters. \code{NULL} for real analyses.}
+\item{randomSample}{\code{logical}. Set to \code{TRUE} for subject sample randomisation.}
 
-\item{verbose.gwas}{\code{logical}. Set to \code{TRUE} for verbose GWAS progress reports.}
+\item{mockPath}{Path to input directory with saved objects for vGWAS mocking. Mock parameters should match  original parameters.}
+}
+\value{
+A list containing all the resulting statistical parametric maps.
+Useful for registering results to different standard spaces and resolutions or selecting alternative SNPs for the full analysys. \code{NULL} for real analyses.
 }
 \description{
 Loads and prepares the data, runs preliminary (if necessary) and full analyses.

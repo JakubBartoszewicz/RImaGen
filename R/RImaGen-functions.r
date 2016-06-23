@@ -17,8 +17,10 @@ getSNPfdr <- function(p.value, eff.no.tests)
   # Calculate pFDR q-values
   q.value.pFDR.obj <- qvalue(pc.value, pfdr = TRUE)
   q.value.pFDR <- q.value.pFDR.obj$qvalues
+
+  rank <- 1:length(p.value)
   # Bind into one data.frame
-  voxel.results <- cbind(p.value, pc.value, FDR, q.value.FDR, q.value.pFDR)
+  voxel.results <- cbind(rank, p.value, pc.value, FDR, q.value.FDR, q.value.pFDR)
   return (voxel.results)
 }
 
@@ -79,7 +81,7 @@ getSNPresults <- function(meh, sel.snps)
 #' @param snp.name Chosen SNP name.
 #' @param results A named list of results for each SNP.
 #' @param mask Image mask (a \code{nifti} object or an array).
-#' @param mdt Reference image.
+#' @param ref.img Reference image.
 #' @param log.cutoff Negative log p-value cutoff value.
 #' @param plot \code{logical}. Set to \code{TRUE} for automated plotting of the results.
 #' @param title Plot title.
@@ -87,16 +89,17 @@ getSNPresults <- function(meh, sel.snps)
 #' @param beforeTitle Text to print before the title.
 #' @param afterTitle Text to print after the title.
 #' @param outPath Output path. If \code{NULL} (default) no plot files will be saved.
+#' @param matPath Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.
 #' @return Results visualisation image.
-visualiseSNP <- function(snp.name, results, mask, mdt, log.cutoff = 0, plot = TRUE, title = snp.name, titleSize = 1, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL){
+visualiseSNP <- function(snp.name, results, mask, ref.img, log.cutoff = 0, plot = TRUE, title = snp.name, titleSize = 1, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL){
   # Select SNP results by SNP name
-  result <- results[[snp.name]][2:6]
+  result <- results[[snp.name]][2:5]
   # Set row names to voxel numbers
   row.names(result) <- result$gene
   # Cast data types
   result <- result[as.character(1:nrow(result)),]
   # Visualise results
-  img <- visualiseVox(result$pvalue, mask, mdt, log.cutoff, plot, title = title, titleSize = titleSize, beforeTitle = beforeTitle, afterTitle = afterTitle, outPath = outPath)
+  img <- visualiseVox(result$pvalue, mask, ref.img, log.cutoff, plot, title = title, titleSize = titleSize, beforeTitle = beforeTitle, afterTitle = afterTitle, outPath = outPath, matPath = matPath)
   return (img)
 }
 
@@ -105,7 +108,7 @@ visualiseSNP <- function(snp.name, results, mask, mdt, log.cutoff = 0, plot = TR
 #' @export
 #' @param result Vector of target statistics.
 #' @param mask Image mask.
-#' @param mdt Reference image.
+#' @param ref.img Reference image.
 #' @param log.cutoff Negative log p-value cutoff value.
 #' @param plot \code{logical}. Set to \code{TRUE} for automated plotting of the results.
 #' @param title Plot title.
@@ -113,20 +116,32 @@ visualiseSNP <- function(snp.name, results, mask, mdt, log.cutoff = 0, plot = TR
 #' @param beforeTitle Text to print before the title.
 #' @param afterTitle Text to print after the title.#'
 #' @param outPath Output path. If \code{NULL} (default) no plot files will be saved.
+#' @param matPath Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.
 #' @return Results visualisation image.
-visualiseVox <- function(result, mask, mdt, log.cutoff = 0, plot = TRUE, title = "winning SNP", titleSize = 1, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL){
+visualiseVox <- function(result, mask, ref.img, log.cutoff = 0, plot = TRUE, title = "winning SNP", titleSize = 1, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL){
   # Calculate log-negative results
-  img <- -log10(result)
+  log.res <- -log10(result)
   # Find coordinates of voxels to be filled
   fit <- which(mask == 1)
   # Fill mask with results
-  mask[fit] <- img
-  # Upsample image
-  mask <- fslr::flirt(mask, mask, opts = paste("-applyisoxfm ", mdt@pixdim[2]), verbose = FALSE)
+  mask[fit] <- log.res
+
+  # If convolution matrix provided
+  if(!is.null(matPath)){
+    # Coregister to reference image
+    img <- fslr::flirt(mask, ref.img, opts = paste("-init", matPath), verbose = FALSE)
+  }
+  else{
+    # Upsample image
+    img <- fslr::flirt(mask, mask, opts = paste("-applyisoxfm ", ref.img@pixdim[2]), verbose = FALSE)
+  }
+
   # Create nifti image from the filled mask
-  img <- fslr::niftiarr(img = mdt, arr = mask)
+  #img <- fslr::niftiarr(img = ref.img, arr = mask)
   # Cutoff low results
   img[which(img < log.cutoff)] <- 0
+
+
 
   # If plots needed
   if(plot){
@@ -150,25 +165,25 @@ visualiseVox <- function(result, mask, mdt, log.cutoff = 0, plot = TRUE, title =
       # Throws an error if an image of zeroes
       coords <- which(img == max(img), arr.ind = TRUE)
       # Plot results with crosshairs centered at maximum voxel intensity
-      fslr::ortho2(mdt, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+      fslr::ortho2(ref.img, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
       if(!is.null(outPath)){
-        png(filename = paste(outPath, "/png/", gsub("[[:space:]]", "", title), gsub("[[:space:]]", "", afterTitle), ".png", sep = ""))
-        fslr::ortho2(mdt, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        png(filename = paste(outPath, "/png/", gsub("[[:space:]]", "-", title), gsub("[[:space:]]", "-", afterTitle), ".png", sep = ""))
+        fslr::ortho2(ref.img, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
         dev.off()
-        pdf(paste(outPath, "/pdf/", gsub("[[:space:]]", "", title), gsub("[[:space:]]", "", afterTitle), ".pdf", sep = ""))
-        fslr::ortho2(mdt, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        pdf(paste(outPath, "/pdf/", gsub("[[:space:]]", "-", title), gsub("[[:space:]]", "-", afterTitle), ".pdf", sep = ""))
+        fslr::ortho2(ref.img, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
         dev.off()
       }
     }
     else{
       # Plot reference image
-      fslr::ortho2(mdt, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+      fslr::ortho2(ref.img, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
       if(!is.null(outPath)){
-        png(filename = paste(outPath, "/png/", gsub("[[:space:]]", "", title), gsub("[[:space:]]", "", afterTitle), ".png", sep = ""))
-        fslr::ortho2(mdt, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        png(filename = paste(outPath, "/png/", gsub("[[:space:]]", "-", title), gsub("[[:space:]]", "-", afterTitle), ".png", sep = ""))
+        fslr::ortho2(ref.img, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
         dev.off()
-        pdf(paste(outPath, "/pdf/", gsub("[[:space:]]", "", title), gsub("[[:space:]]", "", afterTitle), ".pdf", sep = ""))
-        fslr::ortho2(mdt, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        pdf(paste(outPath, "/pdf/", gsub("[[:space:]]", "-", title), gsub("[[:space:]]", "-", afterTitle), ".pdf", sep = ""))
+        fslr::ortho2(ref.img, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
         dev.off()
       }
     }

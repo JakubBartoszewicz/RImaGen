@@ -4,16 +4,17 @@
 \alias{visualiseVox}
 \title{Visualise by-voxel statistics for each voxel, e.g winning SNP p-value per voxel.}
 \usage{
-visualiseVox(result, mask, mdt, log.cutoff = 0, plot = TRUE,
+visualiseVox(result, mask, ref.img, log.cutoff = 0, plot = TRUE,
   title = "winning SNP", titleSize = 1,
-  beforeTitle = "-log10 p-values by\\n", afterTitle = "", outPath = NULL)
+  beforeTitle = "-log10 p-values by\\n", afterTitle = "", outPath = NULL,
+  matPath = NULL)
 }
 \arguments{
 \item{result}{Vector of target statistics.}
 
 \item{mask}{Image mask.}
 
-\item{mdt}{Reference image.}
+\item{ref.img}{Reference image.}
 
 \item{log.cutoff}{Negative log p-value cutoff value.}
 
@@ -28,6 +29,8 @@ visualiseVox(result, mask, mdt, log.cutoff = 0, plot = TRUE,
 \item{afterTitle}{Text to print after the title.#'}
 
 \item{outPath}{Output path. If \code{NULL} (default) no plot files will be saved.}
+
+\item{matPath}{Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.}
 }
 \value{
 Results visualisation image.
