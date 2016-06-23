@@ -41,13 +41,13 @@ downsample <- function(img, subFactor = 1, method = c("FLIRT", "SUBSAMP2"), bin 
     {
       # Either use fslmaths -subsamp2 if you really must
       for (i in 1:subFactor){
-        img <- fslr::fslsub2(img, verbose = TRUE)
+        img <- fslr::fslsub2(img, verbose = FALSE)
       }
     }
     if(type == "FLIRT")
     {
       # Or use flirt (recommended)
-      img <- fslr::flirt(img, img, opts = paste("-applyisoxfm ", 2^subFactor))
+      img <- fslr::flirt(img, img, opts = paste("-applyisoxfm ", 2^subFactor), verbose = FALSE)
     }
     if(bin)
     {
@@ -86,8 +86,9 @@ getSNPresults <- function(meh, sel.snps)
 #' @param titleSize Title font size.
 #' @param beforeTitle Text to print before the title.
 #' @param afterTitle Text to print after the title.
+#' @param outPath Output path. If \code{NULL} (default) no plot files will be saved.
 #' @return Results visualisation image.
-visualiseSNP <- function(snp.name, results, mask, mdt, log.cutoff = 0, plot = TRUE, title = snp.name, titleSize = 1, beforeTitle = "-log10 p-values by\n", afterTitle =""){
+visualiseSNP <- function(snp.name, results, mask, mdt, log.cutoff = 0, plot = TRUE, title = snp.name, titleSize = 1, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL){
   # Select SNP results by SNP name
   result <- results[[snp.name]][2:6]
   # Set row names to voxel numbers
@@ -95,7 +96,7 @@ visualiseSNP <- function(snp.name, results, mask, mdt, log.cutoff = 0, plot = TR
   # Cast data types
   result <- result[as.character(1:nrow(result)),]
   # Visualise results
-  img <- visualiseVox(result$pvalue, mask, mdt, log.cutoff, plot, title = title, titleSize = titleSize, beforeTitle = beforeTitle, afterTitle = afterTitle)
+  img <- visualiseVox(result$pvalue, mask, mdt, log.cutoff, plot, title = title, titleSize = titleSize, beforeTitle = beforeTitle, afterTitle = afterTitle, outPath = outPath)
   return (img)
 }
 
@@ -110,9 +111,10 @@ visualiseSNP <- function(snp.name, results, mask, mdt, log.cutoff = 0, plot = TR
 #' @param title Plot title.
 #' @param titleSize Title font size.
 #' @param beforeTitle Text to print before the title.
-#' @param afterTitle Text to print after the title.
+#' @param afterTitle Text to print after the title.#'
+#' @param outPath Output path. If \code{NULL} (default) no plot files will be saved.
 #' @return Results visualisation image.
-visualiseVox <- function(result, mask, mdt, log.cutoff = 0, plot = TRUE, title = "winning SNP", titleSize = 1, beforeTitle = "-log10 p-values by\n", afterTitle =""){
+visualiseVox <- function(result, mask, mdt, log.cutoff = 0, plot = TRUE, title = "winning SNP", titleSize = 1, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL){
   # Calculate log-negative results
   img <- -log10(result)
   # Find coordinates of voxels to be filled
@@ -120,14 +122,56 @@ visualiseVox <- function(result, mask, mdt, log.cutoff = 0, plot = TRUE, title =
   # Fill mask with results
   mask[fit] <- img
   # Upsample image
-  mask <- fslr::flirt(mask, mask, opts = paste("-applyisoxfm ", mdt@pixdim[1]))
+  mask <- fslr::flirt(mask, mask, opts = paste("-applyisoxfm ", mdt@pixdim[2]), verbose = FALSE)
   # Create nifti image from the filled mask
   img <- fslr::niftiarr(img = mdt, arr = mask)
   # Cutoff low results
   img[which(img < log.cutoff)] <- 0
+
+  # If plots needed
   if(plot){
-    # Plot results with crosshairs centered at maximum voxel intensity
-    fslr::ortho2(mdt, img, xyz = which(img == max(img), arr.ind = TRUE), text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+
+    if(!is.null(outPath)){
+      # Create output directory if needed
+      if(!dir.exists(outPath)){
+        dir.create(outPath)
+      }
+      # Create png output directory if needed
+      if(!dir.exists(paste(outPath, "/png", sep = ""))){
+        dir.create(paste(outPath, "/png", sep = ""))
+      }
+      # Create pdf output directory if needed
+      if(!dir.exists(paste(outPath, "/pdf", sep = ""))){
+        dir.create(paste(outPath, "/pdf", sep = ""))
+      }
+    }
+
+    if(length(which(img > 0)) > 0){
+      # Throws an error if an image of zeroes
+      coords <- which(img == max(img), arr.ind = TRUE)
+      # Plot results with crosshairs centered at maximum voxel intensity
+      fslr::ortho2(mdt, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+      if(!is.null(outPath)){
+        png(filename = paste(outPath, "/png/", gsub("[[:space:]]", "", title), gsub("[[:space:]]", "", afterTitle), ".png", sep = ""))
+        fslr::ortho2(mdt, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        dev.off()
+        pdf(paste(outPath, "/pdf/", gsub("[[:space:]]", "", title), gsub("[[:space:]]", "", afterTitle), ".pdf", sep = ""))
+        fslr::ortho2(mdt, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        dev.off()
+      }
+    }
+    else{
+      # Plot reference image
+      fslr::ortho2(mdt, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+      if(!is.null(outPath)){
+        png(filename = paste(outPath, "/png/", gsub("[[:space:]]", "", title), gsub("[[:space:]]", "", afterTitle), ".png", sep = ""))
+        fslr::ortho2(mdt, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        dev.off()
+        pdf(paste(outPath, "/pdf/", gsub("[[:space:]]", "", title), gsub("[[:space:]]", "", afterTitle), ".pdf", sep = ""))
+        fslr::ortho2(mdt, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        dev.off()
+      }
+    }
   }
   return (img)
 }
@@ -240,7 +284,7 @@ readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.
 
       if(length(forced > 0)){
         # If some of the forced SNPs did not pass the QC, add them to the data set
-        warning(paste("Forcing SNPs not passing the quality control:\n", paste(capture.output(csum[forced,c("Call.rate", "MAF", "z.HWE")]), collapse = "\n")))
+        message(paste("Forcing SNPs not passing the quality control:\n", paste(capture.output(csum[forced,c("Call.rate", "MAF", "z.HWE")]), collapse = "\n")))
         snps <- cbind(snps, genomes$genotypes[,forced])
       }
     }

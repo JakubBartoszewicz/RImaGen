@@ -6,7 +6,7 @@
 \usage{
 visualiseSNP(snp.name, results, mask, mdt, log.cutoff = 0, plot = TRUE,
   title = snp.name, titleSize = 1, beforeTitle = "-log10 p-values by\\n",
-  afterTitle = "")
+  afterTitle = "", outPath = NULL)
 }
 \arguments{
 \item{snp.name}{Chosen SNP name.}
@@ -28,6 +28,8 @@ visualiseSNP(snp.name, results, mask, mdt, log.cutoff = 0, plot = TRUE,
 \item{beforeTitle}{Text to print before the title.}
 
 \item{afterTitle}{Text to print after the title.}
+
+\item{outPath}{Output path. If \code{NULL} (default) no plot files will be saved.}
 }
 \value{
 Results visualisation image.

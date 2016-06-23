@@ -5,7 +5,7 @@
 \title{Perform voxelwise genome-wide association analysis.}
 \usage{
 vGWAS(snpData, voxelData, cvrt, useModel, prescan,
-  errorCovariance = numeric(), pvalue.hist = FALSE)
+  errorCovariance = numeric(), pvalue.hist = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{snpData}{\code{\linkS4class{SlicedData}} object containing selected SNPs.}
@@ -25,6 +25,8 @@ Defines whether and how the distribution of p-values is recorded in the returned
 Set to \code{FALSE} for a faster analysis. To record information for a histogram set to the number of bins.
 To record information for a qq-plot, set to \code{qq-plot}.
 Use \code{plot} on the returned object.}
+
+\item{verbose}{\code{logical}. Set to \code{TRUE} for verbose GWAS progress reports.}
 }
 \value{
 vGWAS results.

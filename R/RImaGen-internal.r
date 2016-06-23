@@ -34,8 +34,8 @@ readFlatROI <- function(path, subFactor = 0 , voxelList = NULL, method = c("FLIR
 binariseMask <- function(mask, thresh = 0.9)
 {
   # Threshold image
-  mask <- fslr::fslthresh(mask, thresh = thresh)
+  mask <- fslr::fslthresh(mask, thresh = thresh, verbose = FALSE)
   # Binarase image
-  mask <- fslr::fslbin(mask)
+  mask <- fslr::fslbin(mask, verbose = FALSE)
   return(mask)
 }

@@ -4,10 +4,11 @@
 \alias{performVGWAS}
 \title{Perform voxelwise genome-wide association study.}
 \usage{
-performVGWAS(genePath, brainPath, mdtPath, maskPath, infoPath, outPath,
-  subFactor, force.snps = NULL, useModel = modelLINEAR, top.thresh = 5,
-  log.cutoff = 4, eff.no.tests = 275575, sampleSize = NULL,
-  mockPath = NULL)
+performVGWAS(genePath, brainPath, mdtPath, maskPath, infoPath, subFactor,
+  outResolution = 2^(subFactor - 1), outPath = NULL, force.snps = NULL,
+  useModel = modelLINEAR, top.thresh = 5, log.cutoff = 4,
+  eff.no.tests = 275575, sampleSize = NULL, mockPath = NULL,
+  verbose.gwas = FALSE)
 }
 \arguments{
 \item{genePath}{Path to a directory containing plink files with genomic data.}
@@ -20,9 +21,11 @@ performVGWAS(genePath, brainPath, mdtPath, maskPath, infoPath, outPath,
 
 \item{infoPath}{Path to .csv containing subject demographics.}
 
-\item{outPath}{Path to output directory.}
-
 \item{subFactor}{Downsampling factor.}
+
+\item{outResolution}{Output images resolution.}
+
+\item{outPath}{Path to output directory.}
 
 \item{force.snps}{\code{character} vector of SNPs forced to be analysed even if not passing the quality control.}
 
@@ -37,6 +40,8 @@ performVGWAS(genePath, brainPath, mdtPath, maskPath, infoPath, outPath,
 \item{sampleSize}{Subject sample size.}
 
 \item{mockPath}{Path to input directory with saved objects for vGWAS mocking. Mock parameters should match  original parameters. \code{NULL} for real analyses.}
+
+\item{verbose.gwas}{\code{logical}. Set to \code{TRUE} for verbose GWAS progress reports.}
 }
 \description{
 Loads and prepares the data, runs preliminary (if necessary) and full analyses.

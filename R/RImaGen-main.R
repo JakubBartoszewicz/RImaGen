@@ -14,6 +14,7 @@
 #' @param infoPath Path to .csv containing subject demographics.
 #' @param outPath Path to output directory.
 #' @param subFactor Downsampling factor.
+#' @param out.subFactor Output images downsampling factor. Default: \code{max(1, subFactor-1)}.
 #' @param force.snps \code{character} vector of SNPs forced to be analysed even if not passing the quality control.
 #' @param useModel Regression model to use.
 #' @param top.thresh Number of top SNPs to be analysed and visualised.
@@ -21,10 +22,11 @@
 #' @param eff.no.tests Effective number of tests (SNPs) for p-value correction.
 #' @param sampleSize Subject sample size.
 #' @param mockPath Path to input directory with saved objects for vGWAS mocking. Mock parameters should match  original parameters. \code{NULL} for real analyses.
-performVGWAS <- function(genePath, brainPath, mdtPath, maskPath, infoPath, outPath, subFactor, force.snps = NULL, useModel = modelLINEAR, top.thresh = 5, log.cutoff = 4, eff.no.tests = 275575, sampleSize = NULL, mockPath = NULL){
+performVGWAS <- function(genePath, brainPath, mdtPath, maskPath, infoPath, subFactor, out.subFactor = max(1, subFactor-1), outPath = NULL, force.snps = NULL, useModel = modelLINEAR, top.thresh = 5, log.cutoff = 4, eff.no.tests = 275575, sampleSize = NULL, mockPath = NULL){
   cat("Preparing data...\n")
 
-  if(!dir.exists(outPath)){
+  # Create output directory if needed
+  if(!is.null(outPath) & !dir.exists(outPath)){
     dir.create(outPath)
   }
 
@@ -66,7 +68,7 @@ performVGWAS <- function(genePath, brainPath, mdtPath, maskPath, infoPath, outPa
   sample <- 1:min(sampleSize,length(niiFiles))
 
   # Mask: whole brain
-  cat("Loading image mask... ")
+  cat("Loading image mask...\n")
   mask <- fslr::readNIfTI2(maskPath)
   if (subFactor > 0){
     mask <- downsample(mask, subFactor, bin = TRUE)
@@ -78,10 +80,12 @@ performVGWAS <- function(genePath, brainPath, mdtPath, maskPath, infoPath, outPa
     # Real loading
     time <- system.time(pheno <- readFlatROIs(paths =  niiFiles[sample], ids = subjects[sample], subFactor = subFactor, mask = mask))
     cat(sprintf("%.2fs\n", time[3]))
-    save(pheno, file = paste(outPath, "/flatROIs-", 2^subFactor, ".R" , sep = ""))
+    if(!is.null(outPath))
+      save(pheno, file = paste(outPath, "/flatROIs-", 2^subFactor, ".R" , sep = ""))
   }
   else{
     # Load saved data
+    cat("\n")
     load(file = paste(mockPath, "/flatROIs-", 2^subFactor, ".R" , sep = ""))
   }
 
@@ -99,12 +103,15 @@ performVGWAS <- function(genePath, brainPath, mdtPath, maskPath, infoPath, outPa
   cvrt <- MatrixEQTL::SlicedData$new(covar[, subjects[sample]])
   cvrt$ResliceCombined(500)
 
+
+  cat("Running preliminary analysis...\n")
   # Perform preliminary analysis
   if(top.thresh > 0){
     if(is.null(mockPath)){
       # Real analysis
       meh <- vGWAS(snpData = snpData, voxelData = voxelData, cvrt = cvrt, useModel = useModel, prescan = TRUE)
-      save(meh, file = paste(outPath, "/pre-", 2^subFactor, ".R" , sep = ""))
+      if(!is.null(outPath))
+        save(meh, file = paste(outPath, "/pre-", 2^subFactor, ".R" , sep = ""))
     }
     else{
       # Load saved data
@@ -130,18 +137,12 @@ performVGWAS <- function(genePath, brainPath, mdtPath, maskPath, infoPath, outPa
   snpData.selected$ResliceCombined(500)
 
   # Run full analysis
-  if(is.null(mockPath)){
-    # Real analysis
-    meh <- vGWAS(snpData = snpData.selected, voxelData = voxelData, cvrt = cvrt, useModel = useModel, prescan = FALSE)
+  cat("Running full analysis...\n")
+  meh <- vGWAS(snpData = snpData.selected, voxelData = voxelData, cvrt = cvrt, useModel = useModel, prescan = FALSE)
 
-    # Get results for selected SNPs
-    results.by.snp <- getSNPresults(meh, sel.snps)
-    save(results.by.snp, file = paste(outPath, "/snps-", 2^subFactor, ".R", sep = ""))
-  }
-  else{
-    # Load saved data
-    load(file = paste(mockPath, "/snps-", 2^subFactor, ".R", sep = ""))
-  }
+  # Get results for selected SNPs
+  results.by.snp <- getSNPresults(meh, sel.snps)
+
   # Calculate FDR for the best SNP
   if(eff.no.tests == 0){
     eff.no.tests <- no.snps
@@ -150,18 +151,23 @@ performVGWAS <- function(genePath, brainPath, mdtPath, maskPath, infoPath, outPa
   voxel.results <- getSNPfdr(p.value, eff.no.tests)
 
   # Visualise snp.results
+  cat("Results visualisation...\n")
   mdt <- fslr::readNIfTI2(mdtPath)
-  mdt <- fslr::fslthresh(mdt)
+  mdt <- fslr::fslthresh(mdt, verbose = FALSE)
+  mdt <- downsample(mdt, out.subFactor)
 
-  pdf(paste(outPath, "/report-", 2^subFactor, ".pdf", sep = ""))
-  hist(voxel.results[,"p.value"], main ="Histogram of raw p-values")
-  hist(voxel.results[,"pc.value"], main ="Histogram of pc-values")
-  result.images.by.snp.cut <- lapply(X = sel.snps, results = results.by.snp, mask = mask, mdt = mdt, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at ", log.cutoff), FUN = visualiseSNP)
-  result.images.by.snp <- lapply(X = sel.snps, results = results.by.snp, mask = mask, mdt = mdt, afterTitle = "\nno cut-off", FUN = visualiseSNP)
+  if(!is.null(outPath))
+    pdf(paste(outPath, "/report-", 2^subFactor, ".pdf", sep = ""))
+  hist(voxel.results[,"p.value"], main ="Histogram of raw p-values", xlab = "p-value")
+  hist(voxel.results[,"pc.value"], main ="Histogram of pc-values", xlab = "pc-value")
+  result.images.by.snp.cut <- lapply(X = sel.snps, results = results.by.snp, mask = mask, mdt = mdt, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at ", log.cutoff), outPath = outPath, FUN = visualiseSNP)
+  result.images.by.snp <- lapply(X = sel.snps, results = results.by.snp, mask = mask, mdt = mdt, afterTitle = "\nno cut-off", outPath = outPath, FUN = visualiseSNP)
   names(result.images.by.snp.cut) <- sel.snps
   names(result.images.by.snp) <- sel.snps
-  result.image.by.vox <- visualiseVox(voxel.min.pv, mask = mask, mdt = mdt)
-  dev.off()
-  writeNIfTI2(result.image.by.vox, paste(outPath, "/result-image-by-vox-", 2^subFactor, ".nii", sep = ""))
-  writeNIfTI2(result.images.by.snp.cut[[1]], paste(outPath, "/result-image-", sel.snps[1], "-", 2^subFactor, ".nii", sep = ""))
+  result.image.by.vox <- visualiseVox(voxel.min.pv, mask = mask, mdt = mdt, log.cutoff = log.cutoff, outPath = outPath)
+  if(!is.null(outPath)){
+    dev.off()
+    writeNIfTI2(result.image.by.vox, paste(outPath, "/result-image-by-vox-", 2^subFactor, ".nii", sep = ""))
+    lapply(X = sel.snps, FUN = function(x){writeNIfTI2(result.images.by.snp.cut[[x]], paste(outPath, "/result-image-", x, "-", 2^subFactor, ".nii", sep = ""))})
+  }
 }

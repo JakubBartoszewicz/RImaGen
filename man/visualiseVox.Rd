@@ -6,7 +6,7 @@
 \usage{
 visualiseVox(result, mask, mdt, log.cutoff = 0, plot = TRUE,
   title = "winning SNP", titleSize = 1,
-  beforeTitle = "-log10 p-values by\\n", afterTitle = "")
+  beforeTitle = "-log10 p-values by\\n", afterTitle = "", outPath = NULL)
 }
 \arguments{
 \item{result}{Vector of target statistics.}
@@ -25,7 +25,9 @@ visualiseVox(result, mask, mdt, log.cutoff = 0, plot = TRUE,
 
 \item{beforeTitle}{Text to print before the title.}
 
-\item{afterTitle}{Text to print after the title.}
+\item{afterTitle}{Text to print after the title.#'}
+
+\item{outPath}{Output path. If \code{NULL} (default) no plot files will be saved.}
 }
 \value{
 Results visualisation image.
