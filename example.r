@@ -6,8 +6,10 @@ brainPath <- "~/MGR/ADNI/imaging/links"
 ref.imgPath <- "/usr/share/fsl/data/standard/MNI152lin_T1_2mm.nii.gz"
 maskPath <- "~/MGR/ADNI/imaging/T1_biascorr_brain_mask.nii.gz"
 infoPath <- "~/MGR/ADNI/ADNIMERGE.csv"
-outPath <- "~/MGR/OUT_mock_4mm-anova"
-mockPath <- "~/MGR/OUT"
+outPath <- "~/MGR/OUT_4mm_anova_MNI152_2mm"
+mockPath <- "~/MGR/OUT_4mm_linear_MNI152_2mm"
+mockPath.flatROIs <- paste(mockPath, "/flatROIs-", 4, ".R" , sep = "")
+mockPath.pre <- paste(mockPath, "/pre-", 4, ".R" , sep = "")
 matPath <- "~/MGR/mdt2mni.mat"
 
 # Stein et al. 2010, Michta 2016
@@ -40,6 +42,7 @@ covar <- t(covar)
 # Sort covariates by subject ID
 covar <- covar[, order(colnames(covar))]
 
-system.time(performVGWAS(genePath = genePath, niiFiles = niiFiles, niiIDs = niiIDs, covar = covar, ref.imgPath = ref.imgPath,
-                         maskPath = maskPath, infoPath = infoPath, subFactor = 2, out.subFactor = 1, matPath = matPath,
-                         force.snps = force.snps, outPath = outPath, sampleSize = 20, mockPath = mockPath, randomSample = FALSE, useModel = MatrixEQTL::modelANOVA))
+time <- system.time(res <- performVGWAS(genePath = genePath, niiFiles = niiFiles, niiIDs = niiIDs, covar = covar, ref.imgPath = ref.imgPath,
+                         maskPath = maskPath, infoPath = infoPath, subFactor = 2, out.subFactor = 0, matPath = matPath,
+                         force.snps = force.snps, outPath = outPath, useModel = MatrixEQTL::modelANOVA, mockPath.flatROIs = mockPath.flatROIs, mockPath.pre = mockPath.pre))
+cat(sprintf("Total time: %.2fs\n", time[3]))

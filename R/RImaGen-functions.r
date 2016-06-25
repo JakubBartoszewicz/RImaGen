@@ -318,6 +318,7 @@ readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.
 #' Read flattened ROIs from a list of NIfTI files using a cluster of choice.
 #'
 #' @export
+#' @import fslr
 #' @import parallel
 #' @param paths A list of paths to the NIfTI files.
 #' @param ids A list of subject IDs.
@@ -336,7 +337,8 @@ readFlatROIs <- function(paths, ids, subFactor = 0, mask = NULL, method = c("FLI
   if (makeCluster){
     # Make cluster explicitly (assuming all the data stored locally anyway)
     cl <- parallel::makeCluster(nCores, clType)
-    parallel::clusterExport(cl, c("readNIfTI2", "fslsub2", "flirt", "downsample"))
+    parallel::clusterCall(cl, function() library(fslr))
+    parallel::clusterExport(cl, c("downsample"))
   }
   else{
     # Use cluster provided by user

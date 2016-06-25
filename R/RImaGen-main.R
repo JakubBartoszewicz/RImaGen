@@ -26,14 +26,16 @@
 #' @param eff.no.tests Effective number of tests (SNPs) for p-value correction.
 #' @param sampleSize Subject sample size.
 #' @param randomSample \code{logical}. Set to \code{TRUE} for subject sample randomisation.
-#' @param mockPath Path to input directory with saved objects for vGWAS mocking. Mock parameters should match  original parameters.
+#' @param mockPath.flatROIs Path to input file with saved flatROIs object for vGWAS mocking. Mock parameters should match  original parameters.
+#' Useful for registering results to different standard spaces and resolutions, selecting alternative SNPs for the full analysys, of using different genetic models.
+#' @param mockPath.pre Path to input file with saved preliminary analysis results object for vGWAS mocking. Mock parameters should match  original parameters.
 #' Useful for registering results to different standard spaces and resolutions, selecting alternative SNPs for the full analysys, of using different genetic models.
 #' \code{NULL} for real analyses.
 #' @return A list containing all the resulting statistical parametric maps.
 performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, infoPath, subFactor,
                          covar = character(), errorCovariance = numeric(), out.subFactor = subFactor, matPath = NULL,
                          outPath = NULL, force.snps = NULL, useModel = MatrixEQTL::modelLINEAR, top.thresh = 5, log.cutoff = 4,
-                         eff.no.tests = 275575, sampleSize = NULL, randomSample = FALSE, mockPath = NULL){
+                         eff.no.tests = 275575, sampleSize = NULL, randomSample = FALSE, mockPath.flatROIs = NULL, mockPath.pre = NULL){
 
   cat("Preparing data...\n")
 
@@ -91,7 +93,7 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
 
   # Load imaging data
   cat("Loading imaging data... ")
-  if(is.null(mockPath)){
+  if(is.null(mockPath.flatROIs)){
     # Real loading
     time <- system.time(pheno <- readFlatROIs(paths =  niiFiles[sub.sample], ids = subjects[sub.sample], subFactor = subFactor, mask = mask))
     cat(sprintf("%.2fs\n", time[3]))
@@ -101,7 +103,7 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
   else{
     # Load saved data
     cat("\n")
-    load(file = paste(mockPath, "/flatROIs-", 2^subFactor, ".R" , sep = ""))
+    load(file = mockPath.flatROIs)
   }
 
   # Create SlicedData objects
@@ -123,7 +125,7 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
   cat("Running preliminary analysis...\n")
   # Perform preliminary analysis
   if(top.thresh > 0){
-    if(is.null(mockPath)){
+    if(is.null(mockPath.pre)){
       # Real analysis
       meh <- vGWAS(snpData = snpData, voxelData = voxelData, cvrt = cvrt, errorCovariance = errorCovariance, useModel = useModel, prescan = TRUE)
       if(!is.null(outPath))
@@ -131,7 +133,7 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
     }
     else{
       # Load saved data
-      load(file = paste(mockPath, "/pre-", 2^subFactor, ".R" , sep = ""))
+      load(file = mockPath.pre)
     }
     # Top p-values
     min.pv.snps <- sort(meh$all$min.pv.snps)
