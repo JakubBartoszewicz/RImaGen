@@ -5,7 +5,8 @@
 \title{Read SNPs performing genome quality control.}
 \usage{
 readSNPs(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1,
-  hwe.pval = 5.7e-07, force.snps = NULL, forcedOnly = FALSE)
+  hwe.pval = 5.7e-07, force.snps = NULL, forcedOnly = FALSE,
+  outPath = NULL)
 }
 \arguments{
 \item{plinkFiles}{Paths to the plink files}
@@ -19,6 +20,9 @@ readSNPs(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1,
 \item{force.snps}{\code{character} vector of SNPs forced to be analysed even if not passing the quality control.}
 
 \item{forcedOnly}{\code{logical}. If \code{TRUE}, only the SNPs of interest will be analysed, regardless of their data quality.}
+
+\item{outPath}{A character string giving the base filenamefor optional output of QC-ed data. The extensions .bed, .bim, and
+.fam are appended to this string to give the filenames of the three output files.}
 }
 \value{
 \code{\linkS4class{SnpMatrix}} of SNPs passing the quality control

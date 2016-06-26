@@ -276,8 +276,10 @@ vGWAS <- function(snpData, voxelData, cvrt, useModel, prescan, errorCovariance =
 #' @param hwe.pval Hardy-Weinberg equilibrium p-value cutoff value
 #' @param force.snps \code{character} vector of SNPs forced to be analysed even if not passing the quality control.
 #' @param forcedOnly \code{logical}. If \code{TRUE}, only the SNPs of interest will be analysed, regardless of their data quality.
+#' @param outPath A character string giving the base filenamefor optional output of QC-ed data. The extensions .bed, .bim, and
+#' .fam are appended to this string to give the filenames of the three output files.
 #' @return \code{\linkS4class{SnpMatrix}} of SNPs passing the quality control
-readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.pval = 5.7e-07, force.snps = NULL, forcedOnly = FALSE){
+readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.pval = 5.7e-07, force.snps = NULL, forcedOnly = FALSE, outPath = NULL){
   # Read plink files
   genomes <- snpStats::read.plink(plinkFiles[1], plinkFiles[2], plinkFiles[3])
 
@@ -304,12 +306,31 @@ readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.
       }
     }
   }
+
+  map <- genomes$map[colnames(genomes$genotypes) %in% colnames(snps),]
+  fam <- genomes$fam
+
+  # Save the data
+  if(!is.null(outPath)){
+    write.plink(file.base = outPath, snps = snps,
+                pedigree = fam$pedigree, id = fam$member,
+                father = fam$father, mother = fam$mother,
+                sex = fam$sex, phenotype = fam$affected,
+                chromosome = map$chromosome,
+                genetic.distance = map$cM,
+                position = map$position,
+                allele.1 = map$allele.1,
+                allele.2 = map$allele.2,
+                na.code = 0)
+  }
+
   # Transpose snps matrix
   snps <- t(snps)
-  # Set column names to subject IDs
+  # Set row names to subject IDs
   colnames(snps) <- genomes$fam[,2]
   # Sort columns by subject ID
   snps <- snps[, order(colnames(snps))]
+
   rm(genomes)
   gc()
   return(snps)
@@ -337,7 +358,7 @@ readFlatROIs <- function(paths, ids, subFactor = 0, mask = NULL, method = c("FLI
   if (makeCluster){
     # Make cluster explicitly (assuming all the data stored locally anyway)
     cl <- parallel::makeCluster(nCores, clType)
-    parallel::clusterCall(cl, function() library(fslr))
+    parallel::clusterCall(cl, function() requireNamespace(fslr))
     parallel::clusterExport(cl, c("downsample"))
   }
   else{

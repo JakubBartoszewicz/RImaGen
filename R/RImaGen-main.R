@@ -17,7 +17,7 @@
 #' @param covar Covariates matrix with subject IDs as column names.
 #' @param errorCovariance Covariance matrix for the error term. Set to \code{numeric()} for multiple of identity (default, most cases).
 #' @param outPath Path to output directory.
-#' @param out.subFactor Output images downsampling factor. Default: \code{max(1, subFactor-1)}.
+#' @param out.subFactor Output images downsampling factor. Default: equal to \code{subFactor}.
 #' @param matPath Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.
 #' @param force.snps \code{character} vector of SNPs forced to be analysed even if not passing the quality control.
 #' @param useModel Regression model to use.
@@ -84,6 +84,12 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
     write.csv(t(covar[, subjects[sub.sample]]), file = paste(outPath, "/subjects.csv", sep = ""))
   }
 
+  # Create SlicedData objects
+  snpData <- MatrixEQTL::SlicedData$new(snps@.Data[, subjects[sub.sample]])
+  snpData$ResliceCombined(500)
+  rm(snps)
+  gc()
+
   # Mask: whole brain
   cat("Loading image mask...\n")
   mask <- fslr::readNIfTI2(maskPath)
@@ -110,11 +116,8 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
   voxelData <- MatrixEQTL::SlicedData$new(pheno[, subjects[sub.sample]])
   voxelData$ResliceCombined(500)
   rm(pheno)
+  gc()
 
-  # Create SlicedData objects
-  snpData <- MatrixEQTL::SlicedData$new(snps@.Data[, subjects[sub.sample]])
-  snpData$ResliceCombined(500)
-  rm(snps)
 
   # Create SlicedData objects
   cvrt <- MatrixEQTL::SlicedData$new(covar[, subjects[sub.sample]])
