@@ -358,7 +358,7 @@ readFlatROIs <- function(paths, ids, subFactor = 0, mask = NULL, method = c("FLI
   if (makeCluster){
     # Make cluster explicitly (assuming all the data stored locally anyway)
     cl <- parallel::makeCluster(nCores, clType)
-    parallel::clusterCall(cl, function() requireNamespace(fslr))
+    parallel::clusterCall(cl, function() requireNamespace("fslr"))
     parallel::clusterExport(cl, c("downsample"))
   }
   else{
