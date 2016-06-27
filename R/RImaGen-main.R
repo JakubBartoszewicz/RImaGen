@@ -89,6 +89,11 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
   snpData$ResliceCombined(500)
   rm(snps)
   gc()
+  # Recode plink values
+  for(i in 1:snpData$nSlices()){
+    snpData[[i]][which(snpData[[i]] == 0)] <- NA
+    snpData[[i]] <- snpData[[i]] - 1
+  }
 
   # Mask: whole brain
   cat("Loading image mask...\n")
@@ -158,6 +163,8 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
   snpData.selected <- selectSNPs(sel.snps = sel.snps, snpData = snpData)
   snpData.selected <- SlicedData$new(snpData.selected)
   snpData.selected$ResliceCombined(500)
+  rm(snpData)
+  gc()
 
   # Run full analysis
   cat("Running full analysis...\n")
