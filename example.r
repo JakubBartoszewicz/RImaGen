@@ -3,13 +3,14 @@ cat("Setting data...\n")
 # Set paths
 genePath <- "~/MGR/ADNI/genetic/links"
 brainPath <- "~/MGR/ADNI/imaging/links"
-ref.imgPath <- "/usr/share/fsl/data/standard/MNI152lin_T1_2mm.nii.gz"
+ref.imgPath <- "/usr/share/fsl/data/standard/MNI152_T1_2mm.nii.gz"
 maskPath <- "~/MGR/ADNI/imaging/T1_biascorr_brain_mask.nii.gz"
 infoPath <- "~/MGR/ADNI/ADNIMERGE.csv"
 outPath <- "~/MGR/OUT_2mm_linear_MNI152_2mm"
-mockPath <- "~/MGR/OUT_4mm_linear_MNI152_2mm"
-mockPath.flatROIs <- paste(mockPath, "/flatROIs-", 4, ".R" , sep = "")
-mockPath.pre <- paste(mockPath, "/pre-", 4, ".R" , sep = "")
+# Set path to pre-saved flat ROIs and preliminary analysis results
+mockPath <- "~/MGR/OUT_2mm_linear_MNI152_2mm"
+mockPath.flatROIs <- paste(mockPath, "/flatROIs-", 2, ".R" , sep = "")
+mockPath.pre <- paste(mockPath, "/pre-", 2, ".R" , sep = "")
 matPath <- "~/MGR/mdt2mni.mat"
 
 # Stein et al. 2010, Michta 2016
@@ -24,7 +25,7 @@ niiIDs <- substr(list.files(brainPath), 6, 15)
 subject.info <- read.csv(infoPath)
 
 # Select subjects from ADNI1, with their respective images available, and select ID, gender, age, ethnicity and race
-subject.info <- subject.info[which(subject.info$COLPROT == "ADNI1" & subject.info$PTID %in% niiIDs), c("PTID", "PTGENDER", "AGE", "PTETHCAT", "PTRACCAT")]
+subject.info <- subject.info[which(subject.info$COLPROT == "ADNI1" & subject.info$PTID %in% niiIDs), c("PTID", "PTGENDER", "AGE", "PTETHCAT", "PTRACCAT", "DX_bl")]
 # Select unique subjects
 subject.info <- unique(subject.info)
 # Set row names to subject IDs
@@ -43,6 +44,6 @@ covar <- t(covar)
 covar <- covar[, order(colnames(covar))]
 
 time <- system.time(res <- performVGWAS(genePath = genePath, niiFiles = niiFiles, niiIDs = niiIDs, covar = covar, ref.imgPath = ref.imgPath,
-                         maskPath = maskPath, infoPath = infoPath, subFactor = 1, out.subFactor = 0, matPath = matPath,
-                         force.snps = force.snps, outPath = outPath, useModel = MatrixEQTL::modelLINEAR, mockPath.flatROIs = NULL, mockPath.pre = NULL))
+                         maskPath = maskPath, subFactor = 1, out.subFactor = 0, matPath = matPath,
+                         force.snps = force.snps, outPath = outPath, useModel = MatrixEQTL::modelLINEAR, mockPath.flatROIs = mockPath.flatROIs, mockPath.pre = mockPath.pre))
 cat(sprintf("Total time: %.2fs\n", time[3]))

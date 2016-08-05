@@ -12,7 +12,6 @@
 #' @param niiIDs Subject IDs for each image. Shuffle for permutation tests.
 #' @param ref.imgPath Path to a referance image.
 #' @param maskPath Path to an image mask.
-#' @param infoPath Path to .csv containing subject demographics.
 #' @param subFactor Downsampling factor.
 #' @param covar Covariates matrix with subject IDs as column names.
 #' @param errorCovariance Covariance matrix for the error term. Set to \code{numeric()} for multiple of identity (default, most cases).
@@ -32,7 +31,7 @@
 #' Useful for registering results to different standard spaces and resolutions, selecting alternative SNPs for the full analysys, of using different genetic models.
 #' \code{NULL} for real analyses.
 #' @return A list containing all the resulting statistical parametric maps.
-performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, infoPath, subFactor,
+performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subFactor,
                          covar = character(), errorCovariance = numeric(), out.subFactor = subFactor, matPath = NULL,
                          outPath = NULL, force.snps = NULL, useModel = MatrixEQTL::modelLINEAR, top.thresh = 5, log.cutoff = 4,
                          eff.no.tests = 275575, sampleSize = NULL, randomSample = FALSE, mockPath.flatROIs = NULL, mockPath.pre = NULL){
@@ -132,30 +131,23 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
 
   cat("Running preliminary analysis...\n")
   # Perform preliminary analysis
-  if(top.thresh > 0){
-    if(is.null(mockPath.pre)){
-      # Real analysis
-      meh <- vGWAS(snpData = snpData, voxelData = voxelData, cvrt = cvrt, errorCovariance = errorCovariance, useModel = useModel, prescan = TRUE)
-      if(!is.null(outPath))
-        save(meh, file = paste(outPath, "/pre-", 2^subFactor, ".R" , sep = ""))
-    }
-    else{
-      # Load saved data
-      load(file = mockPath.pre)
-    }
-    # Top p-values
-    min.pv.snps <- sort(meh$all$min.pv.snps)
-    ranks.snps <- names(min.pv.snps)
-    top.snps <- ranks.snps[1:top.thresh]
+  if(is.null(mockPath.pre)){
+    # Real analysis
+    meh <- vGWAS(snpData = snpData, voxelData = voxelData, cvrt = cvrt, errorCovariance = errorCovariance, useModel = useModel, prescan = TRUE)
+    if(!is.null(outPath))
+      save(meh, file = paste(outPath, "/pre-", 2^subFactor, ".R" , sep = ""))
   }
   else{
-    top.snps <- c()
+    # Load saved data
+    load(file = mockPath.pre)
   }
+  # Top p-values
+  min.pv.snps <- sort(meh$all$min.pv.snps)
+  ranks.snps <- names(min.pv.snps)
+  top.snps <- ranks.snps[1:top.thresh]
 
   # Select snps of interest
   sel.snps <- unique(c(top.snps, force.snps))
-  # Save selected p-values
-  snp.min.pv <- meh$all$min.pv.snps[sel.snps]
   # Save p-values by voxel
   voxel.min.pv <- meh$all$min.pv.gene
 
@@ -169,20 +161,16 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
   # Run full analysis
   cat("Running full analysis...\n")
   meh <- vGWAS(snpData = snpData.selected, voxelData = voxelData, cvrt = cvrt, errorCovariance = errorCovariance, useModel = useModel, prescan = FALSE)
-  if(top.thresh <= 0){
-    min.pv.snps <- sort(meh$all$min.pv.snps)
-    ranks.snps <- names(min.pv.snps)
-  }
 
   # Get results for selected SNPs
   results.by.snp <- getSNPresults(meh, sel.snps)
 
-  # Calculate FDR for the best SNP
+  # Calculate FDR for winning SNPs
   if(eff.no.tests == 0){
     eff.no.tests <- no.snps
   }
-  p.value <- sort(voxel.min.pv)
-  voxel.results <- getSNPfdr(p.value, eff.no.tests)
+
+  voxel.results <- getSNPfdr(sort(voxel.min.pv), eff.no.tests)
 
   # Extract ranks of selected SNPs
   ranks.sel.snps <- match(sel.snps, ranks.snps)
@@ -200,6 +188,7 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
   else{
     beta <- c()
   }
+
   # Prepare report
   report.snps <- cbind(ranks.sel.snps, min.p.value, statistic, beta)
   report.snps <- report.snps[order(report.snps[,"ranks.sel.snps"]),]
@@ -211,9 +200,11 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
   ref.img <- fslr::readNIfTI2(ref.imgPath)
   ref.img <- fslr::fslthresh(ref.img, verbose = FALSE)
   ref.img <- downsample(ref.img, out.subFactor)
+  scale <- c(min(min.pv.snps), 1)
 
   if(!is.null(outPath)){
     write.csv(report.snps, file = paste(outPath, "/sel-snps-", 2^subFactor, ".csv", sep = ""))
+    write.csv(voxel.results, file = paste(outPath, "/voxels-", 2^subFactor, ".csv", sep = ""))
     # Save histogram pdfs
     pdf(paste(outPath, "/pdf/hist-p-val-", 2^subFactor, ".pdf", sep = ""))
     hist(voxel.results[,"p.value"], main ="Histogram of winning SNP p-values", xlab = "p-value")
@@ -223,10 +214,10 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
     dev.off()
 
     # Save histogram pngs
-    png(filename = paste(outPath, "/png/hist-p-val-", 2^subFactor, ".pdf", sep = ""))
+    png(filename = paste(outPath, "/png/hist-p-val-", 2^subFactor, ".png", sep = ""), width = 1024, height = 1024)
     hist(voxel.results[,"p.value"], main ="Histogram of winning SNP p-values", xlab = "p-value")
     dev.off()
-    png(filename = paste(outPath, "/png/hist-pc-val-", 2^subFactor, ".pdf", sep = ""))
+    png(filename = paste(outPath, "/png/hist-pc-val-", 2^subFactor, ".png", sep = ""), width = 1024, height = 1024)
     hist(voxel.results[,"pc.value"], main ="Histogram of winning SNP pc-values", xlab = "pc-value")
     dev.off()
 
@@ -237,18 +228,27 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, info
   hist(voxel.results[,"p.value"], main ="Histogram of winning SNP p-values", xlab = "p-value")
   hist(voxel.results[,"pc.value"], main ="Histogram of winning SNP pc-values", xlab = "pc-value")
 
-  result.images.by.snp.cut <- lapply(X = sel.snps, results = results.by.snp, mask = mask, ref.img = ref.img, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at", log.cutoff), outPath = outPath, matPath = matPath, FUN = visualiseSNP)
-  result.images.by.snp <- lapply(X = sel.snps, results = results.by.snp, mask = mask, ref.img = ref.img, afterTitle = "\nno cut-off", outPath = outPath, matPath = matPath, FUN = visualiseSNP)
+  # Visualise winning SNPs
+  result.image.by.vox.cut <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, pv.range = scale, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at", log.cutoff), outPath = outPath, matPath = matPath)
+  result.image.by.vox <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, pv.range = scale, afterTitle = "\nno cut-off", outPath = outPath, matPath = matPath)
+  result.image.by.vox.cut.hc <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at ", log.cutoff, "\nhi-contrast", sep = ""), outPath = outPath, matPath = matPath)
+  result.image.by.vox.hc <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, afterTitle = "\nno cut-off\nhi-contrast", outPath = outPath, matPath = matPath)
+
+  # Visualise selected SNPs
+  result.images.by.snp.cut <- lapply(X = sel.snps, results = results.by.snp, mask = mask, ref.img = ref.img, pv.range = scale, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at", log.cutoff), outPath = outPath, matPath = matPath, FUN = visualiseSNP)
+  result.images.by.snp <- lapply(X = sel.snps, results = results.by.snp, mask = mask, ref.img = ref.img, pv.range = scale, afterTitle = "\nno cut-off", outPath = outPath, matPath = matPath, FUN = visualiseSNP)
   names(result.images.by.snp.cut) <- sel.snps
   names(result.images.by.snp) <- sel.snps
-  result.image.by.vox <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, log.cutoff = log.cutoff, outPath = outPath, matPath = matPath)
+  gc()
   if(!is.null(outPath)){
     # Close report file
     dev.off()
     # Save .nii images
-    writeNIfTI2(result.image.by.vox, paste(outPath, "/result-image-by-vox-", 2^subFactor, "-", ref.img@pixdim[2], "mm.nii", sep = ""))
+    writeNIfTI2(result.image.by.vox.cut, paste(outPath, "/result-image-by-vox-", 2^subFactor, "-", ref.img@pixdim[2], "mm.nii", sep = ""))
     lapply(X = sel.snps, FUN = function(x){writeNIfTI2(result.images.by.snp.cut[[x]], paste(outPath, "/result-image-", x, "-", 2^subFactor, "-", ref.img@pixdim[2], "mm.nii", sep = ""))})
-  }
+    }
+
+
 
   return (list(result.images.by.snp, result.images.by.snp.cut, result.image.by.vox))
 }

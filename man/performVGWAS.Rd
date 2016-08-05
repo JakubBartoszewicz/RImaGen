@@ -4,8 +4,8 @@
 \alias{performVGWAS}
 \title{Perform voxelwise genome-wide association study.}
 \usage{
-performVGWAS(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, infoPath,
-  subFactor, covar = character(), errorCovariance = numeric(),
+performVGWAS(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subFactor,
+  covar = character(), errorCovariance = numeric(),
   out.subFactor = subFactor, matPath = NULL, outPath = NULL,
   force.snps = NULL, useModel = MatrixEQTL::modelLINEAR, top.thresh = 5,
   log.cutoff = 4, eff.no.tests = 275575, sampleSize = NULL,
@@ -21,8 +21,6 @@ performVGWAS(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, infoPath,
 \item{ref.imgPath}{Path to a referance image.}
 
 \item{maskPath}{Path to an image mask.}
-
-\item{infoPath}{Path to .csv containing subject demographics.}
 
 \item{subFactor}{Downsampling factor.}
 

@@ -10,7 +10,7 @@ getSNPfdr <- function(p.value, eff.no.tests)
   # Calculate corrected p-values using Beta distribution
   pc.value <- pbeta(p.value, 1, eff.no.tests)
   # Calculate FDR
-  FDR <- p.adjust(pc.value)
+  FDR <- p.adjust(pc.value, "fdr")
   # Calculate FDR q-values
   q.value.FDR.obj <- qvalue(pc.value, pfdr = FALSE)
   q.value.FDR <- q.value.FDR.obj$qvalues
@@ -20,8 +20,8 @@ getSNPfdr <- function(p.value, eff.no.tests)
 
   rank <- 1:length(p.value)
   # Bind into one data.frame
-  voxel.results <- cbind(rank, p.value, pc.value, FDR, q.value.FDR, q.value.pFDR)
-  return (voxel.results)
+  results <- cbind(rank, p.value, pc.value, FDR, q.value.FDR, q.value.pFDR)
+  return (results)
 }
 
 #' Downsample an image.
@@ -82,6 +82,7 @@ getSNPresults <- function(meh, sel.snps)
 #' @param results A named list of results for each SNP.
 #' @param mask Image mask (a \code{nifti} object or an array).
 #' @param ref.img Reference image.
+#' @param pv.range P-value range for scale.
 #' @param log.cutoff Negative log p-value cutoff value.
 #' @param plot \code{logical}. Set to \code{TRUE} for automated plotting of the results.
 #' @param title Plot title.
@@ -91,7 +92,7 @@ getSNPresults <- function(meh, sel.snps)
 #' @param outPath Output path. If \code{NULL} (default) no plot files will be saved.
 #' @param matPath Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.
 #' @return Results visualisation image.
-visualiseSNP <- function(snp.name, results, mask, ref.img, log.cutoff = 0, plot = TRUE, title = snp.name, titleSize = 1, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL){
+visualiseSNP <- function(snp.name, results, mask, ref.img, pv.range = NULL, log.cutoff = 0, plot = TRUE, title = snp.name, titleSize = 2, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL){
   # Select SNP results by SNP name
   result <- results[[snp.name]][2:5]
   # Set row names to voxel numbers
@@ -99,7 +100,7 @@ visualiseSNP <- function(snp.name, results, mask, ref.img, log.cutoff = 0, plot 
   # Cast data types
   result <- result[as.character(1:nrow(result)),]
   # Visualise results
-  img <- visualiseVox(result$pvalue, mask, ref.img, log.cutoff, plot, title = title, titleSize = titleSize, beforeTitle = beforeTitle, afterTitle = afterTitle, outPath = outPath, matPath = matPath)
+  img <- visualiseVox(result$pvalue, mask, ref.img, pv.range, log.cutoff, plot, title = title, titleSize = titleSize, beforeTitle = beforeTitle, afterTitle = afterTitle, outPath = outPath, matPath = matPath)
   return (img)
 }
 
@@ -109,6 +110,7 @@ visualiseSNP <- function(snp.name, results, mask, ref.img, log.cutoff = 0, plot 
 #' @param result Vector of target statistics.
 #' @param mask Image mask.
 #' @param ref.img Reference image.
+#' @param pv.range P-value range for scale.
 #' @param log.cutoff Negative log p-value cutoff value.
 #' @param plot \code{logical}. Set to \code{TRUE} for automated plotting of the results.
 #' @param title Plot title.
@@ -118,9 +120,15 @@ visualiseSNP <- function(snp.name, results, mask, ref.img, log.cutoff = 0, plot 
 #' @param outPath Output path. If \code{NULL} (default) no plot files will be saved.
 #' @param matPath Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.
 #' @return Results visualisation image.
-visualiseVox <- function(result, mask, ref.img, log.cutoff = 0, plot = TRUE, title = "winning SNP", titleSize = 1, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL){
+visualiseVox <- function(result, mask, ref.img, pv.range = NULL, log.cutoff = 0, plot = TRUE, title = "winning SNP", titleSize = 2, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL){
   # Calculate log-negative results
   log.res <- -log10(result)
+  if(!is.null(pv.range)){
+    log.range <- c(-log10(max(pv.range)), -log10(min(pv.range)))
+  }
+  else
+    log.range = NULL
+  local.max <- max(log.res)
   # Find coordinates of voxels to be filled
   fit <- which(mask == 1)
   # Fill mask with results
@@ -136,12 +144,8 @@ visualiseVox <- function(result, mask, ref.img, log.cutoff = 0, plot = TRUE, tit
     img <- fslr::flirt(mask, mask, opts = paste("-applyisoxfm ", ref.img@pixdim[2]), verbose = FALSE)
   }
 
-  # Create nifti image from the filled mask
-  #img <- fslr::niftiarr(img = ref.img, arr = mask)
   # Cutoff low results
   img[which(img < log.cutoff)] <- 0
-
-
 
   # If plots needed
   if(plot){
@@ -165,13 +169,13 @@ visualiseVox <- function(result, mask, ref.img, log.cutoff = 0, plot = TRUE, tit
       # Throws an error if an image of zeroes
       coords <- which(img == max(img), arr.ind = TRUE)
       # Plot results with crosshairs centered at maximum voxel intensity
-      fslr::ortho2(ref.img, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+      fslr::ortho2(ref.img, img, xyz = coords, zlim.y = log.range, text = paste(beforeTitle, title, afterTitle, "\nmax.: ", round(local.max, 2)), text.cex = titleSize)
       if(!is.null(outPath)){
-        png(filename = paste(outPath, "/png/", gsub("[[:space:]]", "-", title), gsub("[[:space:]]", "-", afterTitle), ".png", sep = ""))
-        fslr::ortho2(ref.img, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        png(filename = paste(outPath, "/png/", gsub("[[:space:]]", "-", title), gsub("[[:space:]]", "-", afterTitle), ".png", sep = ""), width = 1024, height = 1024)
+        fslr::ortho2(ref.img, img, xyz = coords, zlim.y = log.range, text = paste(beforeTitle, title, afterTitle, "\nmax.: ", round(local.max, 2)), text.cex = titleSize * 2)
         dev.off()
         pdf(paste(outPath, "/pdf/", gsub("[[:space:]]", "-", title), gsub("[[:space:]]", "-", afterTitle), ".pdf", sep = ""))
-        fslr::ortho2(ref.img, img, xyz = coords, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        fslr::ortho2(ref.img, img, xyz = coords, zlim.y = log.range, text = paste(beforeTitle, title, afterTitle, "\nmax.: ", round(local.max, 2)), text.cex = titleSize)
         dev.off()
       }
     }
@@ -179,8 +183,8 @@ visualiseVox <- function(result, mask, ref.img, log.cutoff = 0, plot = TRUE, tit
       # Plot reference image
       fslr::ortho2(ref.img, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
       if(!is.null(outPath)){
-        png(filename = paste(outPath, "/png/", gsub("[[:space:]]", "-", title), gsub("[[:space:]]", "-", afterTitle), ".png", sep = ""))
-        fslr::ortho2(ref.img, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
+        png(filename = paste(outPath, "/png/", gsub("[[:space:]]", "-", title), gsub("[[:space:]]", "-", afterTitle), ".png", sep = ""), width = 1024, height = 1024)
+        fslr::ortho2(ref.img, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize * 2)
         dev.off()
         pdf(paste(outPath, "/pdf/", gsub("[[:space:]]", "-", title), gsub("[[:space:]]", "-", afterTitle), ".pdf", sep = ""))
         fslr::ortho2(ref.img, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)

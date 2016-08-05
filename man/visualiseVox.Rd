@@ -4,8 +4,8 @@
 \alias{visualiseVox}
 \title{Visualise by-voxel statistics for each voxel, e.g winning SNP p-value per voxel.}
 \usage{
-visualiseVox(result, mask, ref.img, log.cutoff = 0, plot = TRUE,
-  title = "winning SNP", titleSize = 1,
+visualiseVox(result, mask, ref.img, pv.range = NULL, log.cutoff = 0,
+  plot = TRUE, title = "winning SNP", titleSize = 2,
   beforeTitle = "-log10 p-values by\\n", afterTitle = "", outPath = NULL,
   matPath = NULL)
 }
@@ -15,6 +15,8 @@ visualiseVox(result, mask, ref.img, log.cutoff = 0, plot = TRUE,
 \item{mask}{Image mask.}
 
 \item{ref.img}{Reference image.}
+
+\item{pv.range}{P-value range for scale.}
 
 \item{log.cutoff}{Negative log p-value cutoff value.}
 

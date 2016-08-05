@@ -4,9 +4,10 @@
 \alias{visualiseSNP}
 \title{Visualise by-voxel statistics for a chosen SNP, e.g that SNP's p-value per voxel.}
 \usage{
-visualiseSNP(snp.name, results, mask, ref.img, log.cutoff = 0, plot = TRUE,
-  title = snp.name, titleSize = 1, beforeTitle = "-log10 p-values by\\n",
-  afterTitle = "", outPath = NULL, matPath = NULL)
+visualiseSNP(snp.name, results, mask, ref.img, pv.range = NULL,
+  log.cutoff = 0, plot = TRUE, title = snp.name, titleSize = 2,
+  beforeTitle = "-log10 p-values by\\n", afterTitle = "", outPath = NULL,
+  matPath = NULL)
 }
 \arguments{
 \item{snp.name}{Chosen SNP name.}
@@ -16,6 +17,8 @@ visualiseSNP(snp.name, results, mask, ref.img, log.cutoff = 0, plot = TRUE,
 \item{mask}{Image mask (a \code{nifti} object or an array).}
 
 \item{ref.img}{Reference image.}
+
+\item{pv.range}{P-value range for scale.}
 
 \item{log.cutoff}{Negative log p-value cutoff value.}
 
