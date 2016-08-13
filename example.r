@@ -1,16 +1,21 @@
 cat("Setting data...\n")
 
+# Set parameters
+subFactor = 2
+model = MatrixEQTL::modelANOVA
+top.thresh = 100
+
 # Set paths
 genePath <- "~/MGR/ADNI/genetic/links"
 brainPath <- "~/MGR/ADNI/imaging/links"
 ref.imgPath <- "/usr/share/fsl/data/standard/MNI152_T1_2mm.nii.gz"
 maskPath <- "~/MGR/ADNI/imaging/T1_biascorr_brain_mask.nii.gz"
 infoPath <- "~/MGR/ADNI/ADNIMERGE.csv"
-outPath <- "~/MGR/OUT_2mm_linear_MNI152_2mm"
+outPath <- paste("~/MGR/OUT_", 2^subFactor, "mm_anova_MNI152_2mm_100_c", sep = "")
 # Set path to pre-saved flat ROIs and preliminary analysis results
-mockPath <- "~/MGR/OUT_2mm_linear_MNI152_2mm"
-mockPath.flatROIs <- paste(mockPath, "/flatROIs-", 2, ".R" , sep = "")
-mockPath.pre <- paste(mockPath, "/pre-", 2, ".R" , sep = "")
+mockPath <- paste("~/MGR/OUT_", 2^subFactor, "mm_anova_MNI152_2mm", sep = "")
+mockPath.flatROIs <- paste(mockPath, "/flatROIs-", 2^subFactor, ".R" , sep = "")
+mockPath.pre <- paste(mockPath, "/pre-", 2^subFactor, ".R" , sep = "")
 matPath <- "~/MGR/mdt2mni.mat"
 
 # Stein et al. 2010, Michta 2016
@@ -43,7 +48,9 @@ covar <- t(covar)
 # Sort covariates by subject ID
 covar <- covar[, order(colnames(covar))]
 
-time <- system.time(res <- performVGWAS(genePath = genePath, niiFiles = niiFiles, niiIDs = niiIDs, covar = covar, ref.imgPath = ref.imgPath,
-                         maskPath = maskPath, subFactor = 1, out.subFactor = 0, matPath = matPath,
-                         force.snps = force.snps, outPath = outPath, useModel = MatrixEQTL::modelLINEAR, mockPath.flatROIs = mockPath.flatROIs, mockPath.pre = mockPath.pre))
+time <- system.time(res <- performVGWAS(genePath = genePath, niiFiles = niiFiles,
+                         niiIDs = niiIDs, covar = covar, ref.imgPath = ref.imgPath,
+                         maskPath = maskPath, subFactor = subFactor, out.subFactor = 0, top.thresh = top.thresh,
+                         matPath = matPath, force.snps = force.snps, outPath = outPath, useModel = model,
+                         mockPath.flatROIs = mockPath.flatROIs, mockPath.pre = mockPath.pre, log.cutoff=7.273))
 cat(sprintf("Total time: %.2fs\n", time[3]))

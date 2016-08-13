@@ -9,8 +9,8 @@ getSNPfdr <- function(p.value, eff.no.tests)
 {
   # Calculate corrected p-values using Beta distribution
   pc.value <- pbeta(p.value, 1, eff.no.tests)
-  # Calculate FDR
-  FDR <- p.adjust(pc.value, "fdr")
+  # Calculate BH-adjusted pc-values
+  BH.adjusted.pc <- p.adjust(pc.value, "fdr")
   # Calculate FDR q-values
   q.value.FDR.obj <- qvalue(pc.value, pfdr = FALSE)
   q.value.FDR <- q.value.FDR.obj$qvalues
@@ -20,7 +20,7 @@ getSNPfdr <- function(p.value, eff.no.tests)
 
   rank <- 1:length(p.value)
   # Bind into one data.frame
-  results <- cbind(rank, p.value, pc.value, FDR, q.value.FDR, q.value.pFDR)
+  results <- cbind(rank, p.value, pc.value, BH.adjusted.pc, q.value.FDR, q.value.pFDR)
   return (results)
 }
 

@@ -9,7 +9,8 @@ performVGWAS(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subFactor,
   out.subFactor = subFactor, matPath = NULL, outPath = NULL,
   force.snps = NULL, useModel = MatrixEQTL::modelLINEAR, top.thresh = 5,
   log.cutoff = 4, eff.no.tests = 275575, sampleSize = NULL,
-  randomSample = FALSE, mockPath.flatROIs = NULL, mockPath.pre = NULL)
+  randomSample = FALSE, visualise = TRUE, mockPath.flatROIs = NULL,
+  mockPath.pre = NULL)
 }
 \arguments{
 \item{genePath}{Path to a directory containing plink files with genomic data.}
@@ -47,6 +48,8 @@ performVGWAS(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subFactor,
 \item{sampleSize}{Subject sample size.}
 
 \item{randomSample}{\code{logical}. Set to \code{TRUE} for subject sample randomisation.}
+
+\item{visualise}{\code{logical}. Set to \code{FALSE} to disable results visualisation for bigger analyses.}
 
 \item{mockPath.flatROIs}{Path to input file with saved flatROIs object for vGWAS mocking. Mock parameters should match  original parameters.
 Useful for registering results to different standard spaces and resolutions, selecting alternative SNPs for the full analysys, of using different genetic models.}
