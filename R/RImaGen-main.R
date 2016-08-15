@@ -13,6 +13,7 @@
 #' @param ref.imgPath Path to a referance image.
 #' @param maskPath Path to an image mask.
 #' @param subFactor Downsampling factor.
+#' @param top.range Range of top SNPs to be analysed and visualised.
 #' @param covar Covariates matrix with subject IDs as column names.
 #' @param errorCovariance Covariance matrix for the error term. Set to \code{numeric()} for multiple of identity (default, most cases).
 #' @param outPath Path to output directory.
@@ -20,7 +21,6 @@
 #' @param matPath Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.
 #' @param force.snps \code{character} vector of SNPs forced to be analysed even if not passing the quality control.
 #' @param useModel Regression model to use.
-#' @param top.thresh Number of top SNPs to be analysed and visualised.
 #' @param log.cutoff Negative log p-value cutoff value for results visualisation.
 #' @param eff.no.tests Effective number of tests (SNPs) for p-value correction.
 #' @param sampleSize Subject sample size.
@@ -34,9 +34,9 @@
 #' Useful for registering results to different standard spaces and resolutions, selecting alternative SNPs for the full analysis, or using different genetic models.
 #' \code{NULL} for real analyses.
 #' @return A list containing all the resulting statistical parametric maps.
-performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subFactor,
+performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subFactor, top.range,
                          covar = character(), errorCovariance = numeric(), out.subFactor = subFactor, matPath = NULL,
-                         outPath = NULL, force.snps = NULL, useModel = MatrixEQTL::modelLINEAR, top.thresh = 5, log.cutoff = 4,
+                         outPath = NULL, force.snps = NULL, useModel = MatrixEQTL::modelLINEAR, log.cutoff = 4,
                          eff.no.tests = 275575, sampleSize = NULL, randomSample = FALSE, visualise = TRUE, saveNIfTI = TRUE, uncut = TRUE, mockPath.flatROIs = NULL, mockPath.pre = NULL){
 
   cat("Preparing data...\n")
@@ -147,7 +147,7 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subF
   # Top p-values
   snp.min.pv <- sort(meh$all$min.pv.snps)
   ranks.snps <- names(snp.min.pv)
-  top.snps <- ranks.snps[1:top.thresh]
+  top.snps <- ranks.snps[top.range]
 
   # Select snps of interest
   sel.snps <- unique(c(top.snps, force.snps))
@@ -212,11 +212,17 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subF
     }
     write.csv(voxel.results, file = paste(outPath, "/voxels-", 2^subFactor, ".csv", sep = ""))
     # Save histogram pdfs
-    pdf(paste(outPath, "/pdf/hist-p-val-", 2^subFactor, ".pdf", sep = ""))
+    pdf(paste(outPath, "/pdf/hist-p-val-snp", 2^subFactor, ".pdf", sep = ""))
     hist(voxel.results[,"p.value"], main ="Histogram of winning SNP p-values", xlab = "p-value")
     dev.off()
-    pdf(paste(outPath, "/pdf/hist-pc-val-", 2^subFactor, ".pdf", sep = ""))
+    pdf(paste(outPath, "/pdf/hist-pc-val-snp", 2^subFactor, ".pdf", sep = ""))
     hist(voxel.results[,"pc.value"], main ="Histogram of winning SNP pc-values", xlab = "pc-value")
+    dev.off()
+    pdf(paste(outPath, "/pdf/hist-p-val-vox", 2^subFactor, ".pdf", sep = ""))
+    hist(snp.results[,"p.value"], main ="Histogram of winning voxel p-values", xlab = "p-value")
+    dev.off()
+    pdf(paste(outPath, "/pdf/hist-pc-val-vox", 2^subFactor, ".pdf", sep = ""))
+    hist(snp.results[,"pc.value"], main ="Histogram of winning voxel pc-values", xlab = "pc-value")
     dev.off()
 
     # Save histogram pngs
