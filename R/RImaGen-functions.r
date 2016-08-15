@@ -5,8 +5,7 @@
 #' @param p.value A vector of raw p-values.
 #' @param eff.no.tests Efficient number of performed tests.
 #' @return A summary of FDR q-values.
-getSNPfdr <- function(p.value, eff.no.tests)
-{
+getSNPfdr <- function(p.value, eff.no.tests){
   # Calculate corrected p-values using Beta distribution
   pc.value <- pbeta(p.value, 1, eff.no.tests)
   # Calculate BH-adjusted pc-values
@@ -66,8 +65,7 @@ downsample <- function(img, subFactor = 1, method = c("FLIRT", "SUBSAMP2"), bin 
 #' @param meh vGWAS results.
 #' @param sel.snps \code{character} vector of SNP names.
 #' @return A named list of results for each SNP.
-getSNPresults <- function(meh, sel.snps)
-{
+getSNPresults <- function(meh, sel.snps){
   # Split MatrixEQTL results by SNP name
   results.by.snp <- split(meh$all$eqtls, meh$all$eqtls$snps)
   # Select SNPs of interest
@@ -91,8 +89,9 @@ getSNPresults <- function(meh, sel.snps)
 #' @param afterTitle Text to print after the title.
 #' @param outPath Output path. If \code{NULL} (default) no plot files will be saved.
 #' @param matPath Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.
-#' @return Results visualisation image.
-visualiseSNP <- function(snp.name, results, mask, ref.img, pv.range = NULL, log.cutoff = 0, plot = TRUE, title = snp.name, titleSize = 2, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL){
+#' @param coordsOnly \code{logical}. Set to \code{TRUE} to return coordinates of the best voxel only.
+#' @return A list containing the results visualisation image and a vector of coordinates for the max. value voxel.
+visualiseSNP <- function(snp.name, results, mask, ref.img, pv.range = NULL, log.cutoff = 0, plot = TRUE, title = snp.name, titleSize = 2, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL, coordsOnly = FALSE){
   # Select SNP results by SNP name
   result <- results[[snp.name]][2:5]
   # Set row names to voxel numbers
@@ -100,8 +99,8 @@ visualiseSNP <- function(snp.name, results, mask, ref.img, pv.range = NULL, log.
   # Cast data types
   result <- result[as.character(1:nrow(result)),]
   # Visualise results
-  img <- visualiseVox(result$pvalue, mask, ref.img, pv.range, log.cutoff, plot, title = title, titleSize = titleSize, beforeTitle = beforeTitle, afterTitle = afterTitle, outPath = outPath, matPath = matPath)
-  return (img)
+  imgl <- visualiseVox(result$pvalue, mask, ref.img, pv.range, log.cutoff, plot, title = title, titleSize = titleSize, beforeTitle = beforeTitle, afterTitle = afterTitle, outPath = outPath, matPath = matPath, coordsOnly = coordsOnly)
+  return (imgl)
 }
 
 #' Visualise by-voxel statistics for each voxel, e.g winning SNP p-value per voxel.
@@ -119,8 +118,9 @@ visualiseSNP <- function(snp.name, results, mask, ref.img, pv.range = NULL, log.
 #' @param afterTitle Text to print after the title.#'
 #' @param outPath Output path. If \code{NULL} (default) no plot files will be saved.
 #' @param matPath Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.
-#' @return Results visualisation image.
-visualiseVox <- function(result, mask, ref.img, pv.range = NULL, log.cutoff = 0, plot = TRUE, title = "winning SNP", titleSize = 2, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL){
+#' @param coordsOnly \code{logical}. Set to \code{TRUE} to return coordinates of the best voxel only.
+#' @return A list containing the results visualisation image and a vector of coordinates for the max. value voxel.
+visualiseVox <- function(result, mask, ref.img, pv.range = NULL, log.cutoff = 0, plot = TRUE, title = "winning SNP", titleSize = 2, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL, coordsOnly = FALSE){
   # Calculate log-negative results
   log.res <- -log10(result)
   if(!is.null(pv.range)){
@@ -180,6 +180,7 @@ visualiseVox <- function(result, mask, ref.img, pv.range = NULL, log.cutoff = 0,
       }
     }
     else{
+      coords <- c(1,1,1)
       # Plot reference image
       fslr::ortho2(ref.img, crosshairs = FALSE, text = paste(beforeTitle, title, afterTitle), text.cex = titleSize)
       if(!is.null(outPath)){
@@ -192,7 +193,14 @@ visualiseVox <- function(result, mask, ref.img, pv.range = NULL, log.cutoff = 0,
       }
     }
   }
-  return (img)
+
+  if(coordsOnly){
+    rm(img)
+    gc()
+    img <- NULL
+  }
+
+  return (list(img, coords - 1))
 }
 
 #' Select SNPs by name from a \code{\linkS4class{SlicedData}} object.
