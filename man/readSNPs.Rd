@@ -21,7 +21,7 @@ readSNPs(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1,
 
 \item{forcedOnly}{\code{logical}. If \code{TRUE}, only the SNPs of interest will be analysed, regardless of their data quality.}
 
-\item{outPath}{A character string giving the base filenamefor optional output of QC-ed data. The extensions .bed, .bim, and
+\item{outPath}{A character string giving the base filename for optional output of QC-ed data. The extensions .bed, .bim, and
 .fam are appended to this string to give the filenames of the three output files.}
 }
 \value{

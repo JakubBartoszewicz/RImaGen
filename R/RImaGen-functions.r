@@ -1,3 +1,30 @@
+#' Convert snp report to MNI coordinates
+#'
+#' @export
+#' @param path Path to report file.
+report2mni <- function(path){
+  file <- read.csv(path)
+  coords <- strsplit(as.character(file$coords), split = ", ")
+  coords <- lapply(FUN = as.numeric, X = coords)
+  coords <- lapply(FUN = toMni, X = coords)
+  file$coords = format(coords)
+  write.csv(file, path)
+}
+
+#' Convert voxel coordinates to MNI coordinates.
+#'
+#' @export
+#' @param v A 3D vector of voxel coordinates.
+#' @param res Resolution in mm.
+#' @return MNI coordinates.
+toMni <- function(v, res = 2){
+  r <- c(0,0,0)
+  r[1] <- -res * v[1] + 90
+  r[2] <- res * v[2] - 126
+  r[3] <- res * v[3] - 72
+  return (r)
+}
+
 #' Get False Discovery Rates.
 #'
 #' @export
@@ -288,7 +315,7 @@ vGWAS <- function(snpData, voxelData, cvrt, useModel, prescan, errorCovariance =
 #' @param hwe.pval Hardy-Weinberg equilibrium p-value cutoff value
 #' @param force.snps \code{character} vector of SNPs forced to be analysed even if not passing the quality control.
 #' @param forcedOnly \code{logical}. If \code{TRUE}, only the SNPs of interest will be analysed, regardless of their data quality.
-#' @param outPath A character string giving the base filenamefor optional output of QC-ed data. The extensions .bed, .bim, and
+#' @param outPath A character string giving the base filename for optional output of QC-ed data. The extensions .bed, .bim, and
 #' .fam are appended to this string to give the filenames of the three output files.
 #' @return \code{\linkS4class{SnpMatrix}} of SNPs passing the quality control
 readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.pval = 5.7e-07, force.snps = NULL, forcedOnly = FALSE, outPath = NULL){

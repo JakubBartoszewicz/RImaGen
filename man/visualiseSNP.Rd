@@ -7,7 +7,7 @@
 visualiseSNP(snp.name, results, mask, ref.img, pv.range = NULL,
   log.cutoff = 0, plot = TRUE, title = snp.name, titleSize = 2,
   beforeTitle = "-log10 p-values by\\n", afterTitle = "", outPath = NULL,
-  matPath = NULL)
+  matPath = NULL, coordsOnly = FALSE)
 }
 \arguments{
 \item{snp.name}{Chosen SNP name.}
@@ -35,9 +35,11 @@ visualiseSNP(snp.name, results, mask, ref.img, pv.range = NULL,
 \item{outPath}{Output path. If \code{NULL} (default) no plot files will be saved.}
 
 \item{matPath}{Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.}
+
+\item{coordsOnly}{\code{logical}. Set to \code{TRUE} to return coordinates of the best voxel only.}
 }
 \value{
-Results visualisation image.
+A list containing the results visualisation image and a vector of coordinates for the max. value voxel.
 }
 \description{
 Visualise by-voxel statistics for a chosen SNP, e.g that SNP's p-value per voxel.

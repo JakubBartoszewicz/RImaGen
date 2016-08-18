@@ -11,7 +11,7 @@ brainPath <- "~/MGR/ADNI/imaging/links"
 ref.imgPath <- "/usr/share/fsl/data/standard/MNI152_T1_2mm.nii.gz"
 maskPath <- "~/MGR/ADNI/imaging/T1_biascorr_brain_mask.nii.gz"
 infoPath <- "~/MGR/ADNI/ADNIMERGE.csv"
-outPath <- paste("~/MGR/OUT_", 2^subFactor, "mm_linear_MNI152_2mm_hist", sep = "")
+outPath <- paste("~/MGR/OUT_", 2^subFactor, "mm_linear_MNI152_2mm_out", sep = "")
 # Set path to pre-saved flat ROIs and preliminary analysis results
 mockPath <- paste("~/MGR/OUT_", 2^subFactor, "mm_linear_MNI152_2mm", sep = "")
 mockPath.flatROIs <- paste(mockPath, "/flatROIs-", 2^subFactor, ".R" , sep = "")
@@ -52,5 +52,6 @@ time <- system.time(res <- performVGWAS(genePath = genePath, niiFiles = niiFiles
                          niiIDs = niiIDs, covar = covar, ref.imgPath = ref.imgPath,
                          maskPath = maskPath, subFactor = subFactor, out.subFactor = 0, top.range = top.range,
                          matPath = matPath, force.snps = force.snps, outPath = outPath, useModel = model,
-                         mockPath.flatROIs = mockPath.flatROIs, mockPath.pre = mockPath.pre, log.cutoff=7.273, visualise = TRUE, saveNIfTI = FALSE, uncut = FALSE))
+                         mockPath.flatROIs = mockPath.flatROIs, mockPath.pre = mockPath.pre, log.cutoff = 4))
 cat(sprintf("Total time: %.2fs\n", time[3]))
+report2mni(paste(outPath, "/sel-snps-", 2^subFactor, ".csv", sep = ""))

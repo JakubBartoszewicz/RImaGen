@@ -5,12 +5,12 @@
 \title{Perform voxelwise genome-wide association study.}
 \usage{
 performVGWAS(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subFactor,
-  covar = character(), errorCovariance = numeric(),
+  top.range, covar = character(), errorCovariance = numeric(),
   out.subFactor = subFactor, matPath = NULL, outPath = NULL,
-  force.snps = NULL, useModel = MatrixEQTL::modelLINEAR, top.thresh = 5,
-  log.cutoff = 4, eff.no.tests = 275575, sampleSize = NULL,
-  randomSample = FALSE, visualise = TRUE, mockPath.flatROIs = NULL,
-  mockPath.pre = NULL)
+  force.snps = NULL, useModel = MatrixEQTL::modelLINEAR, log.cutoff = 4,
+  eff.no.tests = 275575, sampleSize = NULL, randomSample = FALSE,
+  visualise = TRUE, saveNIfTI = TRUE, uncut = TRUE,
+  mockPath.flatROIs = NULL, mockPath.pre = NULL)
 }
 \arguments{
 \item{genePath}{Path to a directory containing plink files with genomic data.}
@@ -24,6 +24,8 @@ performVGWAS(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subFactor,
 \item{maskPath}{Path to an image mask.}
 
 \item{subFactor}{Downsampling factor.}
+
+\item{top.range}{Range of top SNPs to be analysed and visualised.}
 
 \item{covar}{Covariates matrix with subject IDs as column names.}
 
@@ -39,8 +41,6 @@ performVGWAS(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subFactor,
 
 \item{useModel}{Regression model to use.}
 
-\item{top.thresh}{Number of top SNPs to be analysed and visualised.}
-
 \item{log.cutoff}{Negative log p-value cutoff value for results visualisation.}
 
 \item{eff.no.tests}{Effective number of tests (SNPs) for p-value correction.}
@@ -51,11 +51,15 @@ performVGWAS(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subFactor,
 
 \item{visualise}{\code{logical}. Set to \code{FALSE} to disable results visualisation for bigger analyses.}
 
+\item{saveNIfTI}{\code{logical}. Set to \code{FALSE} to disable saving nifti results for bigger analyses.}
+
+\item{uncut}{\code{logical}. Set to \code{FALSE} to disable full maps generation.}
+
 \item{mockPath.flatROIs}{Path to input file with saved flatROIs object for vGWAS mocking. Mock parameters should match  original parameters.
 Useful for registering results to different standard spaces and resolutions, selecting alternative SNPs for the full analysys, of using different genetic models.}
 
 \item{mockPath.pre}{Path to input file with saved preliminary analysis results object for vGWAS mocking. Mock parameters should match  original parameters.
-Useful for registering results to different standard spaces and resolutions, selecting alternative SNPs for the full analysys, of using different genetic models.
+Useful for registering results to different standard spaces and resolutions, selecting alternative SNPs for the full analysis, or using different genetic models.
 \code{NULL} for real analyses.}
 }
 \value{
