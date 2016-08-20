@@ -5,17 +5,22 @@
 \title{Read SNPs performing genome quality control.}
 \usage{
 readSNPs(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1,
-  hwe.pval = 5.7e-07, force.snps = NULL, forcedOnly = FALSE,
-  outPath = NULL)
+  hwe.pval = 5.7e-07, min.group = 7, subjects = NULL, force.snps = NULL,
+  forcedOnly = FALSE, outPath = NULL)
 }
 \arguments{
-\item{plinkFiles}{Paths to the plink files}
+\item{plinkFiles}{Paths to the plink files.}
 
-\item{call.rate.cutoff}{Call rate cutoff value}
+\item{call.rate.cutoff}{Call rate cutoff value.}
 
-\item{maf.cutoff}{Minor allele frequency cutoff value}
+\item{maf.cutoff}{Minor allele frequency cutoff value.}
 
-\item{hwe.pval}{Hardy-Weinberg equilibrium p-value cutoff value}
+\item{hwe.pval}{Hardy-Weinberg equilibrium p-value cutoff value.}
+
+\item{min.group}{Minimum subjects per genotype group. Note that it can be only theoretically derived from MAF under H-W equilibrium assumption.
+Set to 0 to rely solely on the HWE test.}
+
+\item{subjects}{Vector of subject IDs to read data for.}
 
 \item{force.snps}{\code{character} vector of SNPs forced to be analysed even if not passing the quality control.}
 

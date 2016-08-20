@@ -309,18 +309,23 @@ vGWAS <- function(snpData, voxelData, cvrt, useModel, prescan, errorCovariance =
 #'
 #' @export
 #' @import snpStats
-#' @param plinkFiles Paths to the plink files
-#' @param call.rate.cutoff Call rate cutoff value
-#' @param maf.cutoff Minor allele frequency cutoff value
-#' @param hwe.pval Hardy-Weinberg equilibrium p-value cutoff value
+#' @param plinkFiles Paths to the plink files.
+#' @param call.rate.cutoff Call rate cutoff value.
+#' @param maf.cutoff Minor allele frequency cutoff value.
+#' @param hwe.pval Hardy-Weinberg equilibrium p-value cutoff value.
+#' @param min.group Minimum subjects per genotype group. Note that it can be only theoretically derived from MAF under H-W equilibrium assumption.
+#' Set to 0 to rely solely on the HWE test.
+#' @param subjects Vector of subject IDs to read data for.
 #' @param force.snps \code{character} vector of SNPs forced to be analysed even if not passing the quality control.
 #' @param forcedOnly \code{logical}. If \code{TRUE}, only the SNPs of interest will be analysed, regardless of their data quality.
 #' @param outPath A character string giving the base filename for optional output of QC-ed data. The extensions .bed, .bim, and
 #' .fam are appended to this string to give the filenames of the three output files.
 #' @return \code{\linkS4class{SnpMatrix}} of SNPs passing the quality control
-readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.pval = 5.7e-07, force.snps = NULL, forcedOnly = FALSE, outPath = NULL){
+readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.pval = 5.7e-07, min.group = 7, subjects = NULL, force.snps = NULL, forcedOnly = FALSE, outPath = NULL){
   # Read plink files
   genomes <- snpStats::read.plink(plinkFiles[1], plinkFiles[2], plinkFiles[3])
+  # Set row names to subject IDs
+  rownames(genomes$genotypes) <- genomes$fam[,2]
 
   if(forcedOnly){
     # If forcedOnly select only the chosen SNPs
@@ -329,20 +334,31 @@ readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.
   else{
     # Else, select all SNPs
     snps <- genomes$genotypes
+  }
 
-    if(call.rate.cutoff > 0 | maf.cutoff > 0 | hwe.pval > 0){
-      # Perform quality control using provided cutoff values
-      csum <- snpStats::col.summary(snps)
-      snps <- snps [,which(csum$Call.rate>=call.rate.cutoff & csum$MAF>=maf.cutoff & 2*pnorm(-abs(csum$z.HWE))>hwe.pval)]
 
-      # Check if forced SNPs passed the QC
-      forced <- force.snps[!(force.snps %in% colnames(snps))]
+  # Select subjects
+  if(!is.null(subjects)){
+    sub.sample <- rownames(snps)[rownames(snps) %in% subjects]
+    snps <- snps[sub.sample,]
+  }
+  else{
+    sub.sample <- rownames(snps)
+  }
 
-      if(length(forced > 0)){
-        # If some of the forced SNPs did not pass the QC, add them to the data set
-        message(paste("Forcing SNPs not passing the quality control:\n", paste(capture.output(csum[forced,c("Call.rate", "MAF", "z.HWE")]), collapse = "\n")))
-        snps <- cbind(snps, genomes$genotypes[,forced])
-      }
+  if(call.rate.cutoff > 0 | maf.cutoff > 0 | hwe.pval > 0){
+    # Perform quality control using provided cutoff values
+    csum <- snpStats::col.summary(snps)
+    snps <- snps [,which(csum$Call.rate>=call.rate.cutoff & csum$MAF>=maf.cutoff & 2*pnorm(-abs(csum$z.HWE))>hwe.pval
+                         & csum$P.AA * csum$Calls > min.group & csum$P.AB * csum$Calls > min.group & csum$P.BB * csum$Calls > min.group)]
+
+    # Check if forced SNPs passed the QC
+    forced <- force.snps[!(force.snps %in% colnames(snps))]
+
+    if(length(forced > 0)){
+      # If some of the forced SNPs did not pass the QC, add them to the data set
+      message(paste("Forcing SNPs not passing the quality control:\n", paste(capture.output(csum[forced,c("Calls", "Call.rate", "MAF", "P.AA", "P.AB", "P.BB" ,"z.HWE")]), collapse = "\n")))
+      snps <- cbind(snps, genomes$genotypes[sub.sample, forced])
     }
   }
 
@@ -365,8 +381,7 @@ readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.
 
   # Transpose snps matrix
   snps <- t(snps)
-  # Set row names to subject IDs
-  colnames(snps) <- genomes$fam[,2]
+
   # Sort columns by subject ID
   snps <- snps[, order(colnames(snps))]
 

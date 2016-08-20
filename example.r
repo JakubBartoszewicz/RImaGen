@@ -1,7 +1,7 @@
 cat("Setting data...\n")
 
 # Set parameters
-subFactor = 2
+subFactor = 1
 model = MatrixEQTL::modelLINEAR
 top.range = 1:5
 

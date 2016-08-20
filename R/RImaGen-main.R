@@ -59,18 +59,22 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subF
 
 # Load data ---------------------------------------------------------------
 
+  # List subjects: chosen subpopulation members having brain scans
+  subjects <- niiIDs [niiIDs %in% colnames(covar)]
 
   # Load genomic data
   plinkFiles <- list.files(genePath, full.names = TRUE)
-  cat("Loading genomic data... ")
-  time <- system.time(snps <- readSNPs(plinkFiles = plinkFiles, force.snps = force.snps))
-  cat(sprintf("%.2fs\n", time[3]))
+  cat("Processing genomic data... ")
+  time <- system.time(snps <- readSNPs(plinkFiles = plinkFiles, force.snps = force.snps, subjects = subjects))
+
   # Count SNPs
   no.snps <- nrow(snps@.Data)
+  cat(sprintf("%d SNPs accepted in %.2fs\n", no.snps, time[3]))
 
-  # List subjects
-  subjects <- colnames(snps[, colnames(snps) %in% colnames(covar)])
-  niiFiles <- niiFiles[niiIDs %in% subjects]
+  # List subjects: chosen subpopulation members having brain scans and their genomes genotyped
+  subjects <- colnames(snps[, colnames(snps) %in% subjects])
+  # List nii files for subjects
+  niiFiles <- niiFiles[subjects]
 
   # Set sample
   if(randomSample){
@@ -193,8 +197,13 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subF
   }
 
   # Prepare report
-  report.snps <- cbind(snp.results[ranks.sel.snps,], statistic, beta)
-  report.snps <- report.snps[order(report.snps[,"rank"]),]
+  if(length(sel.snps) > 1){
+    report.snps <- cbind(snp.results[ranks.sel.snps,], statistic, beta)
+    report.snps <- report.snps[order(report.snps[,"rank"]),]
+  }
+  else{
+    report.snps <- c(snp.results[ranks.sel.snps,], statistic, beta)
+  }
 
 # Visualise results ---------------------------------------------------------------
 
