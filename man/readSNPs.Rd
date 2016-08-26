@@ -5,7 +5,7 @@
 \title{Read SNPs performing genome quality control.}
 \usage{
 readSNPs(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1,
-  hwe.pval = 5.7e-07, min.group = 7, subjects = NULL, force.snps = NULL,
+  hwe.pval = 5.7e-07, min.group = 8, subjects = NULL, force.snps = NULL,
   forcedOnly = FALSE, outPath = NULL)
 }
 \arguments{

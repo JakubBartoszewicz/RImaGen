@@ -154,7 +154,7 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subF
   top.snps <- ranks.snps[top.range]
 
   # Select snps of interest
-  sel.snps <- unique(c(top.snps, force.snps))
+  sel.snps <- unique(c(ranks.snps[1], top.snps, force.snps))
   # Save p-values by voxel
   voxel.min.pv <- meh$all$min.pv.gene
 
@@ -263,18 +263,24 @@ performVGWAS <- function(genePath, niiFiles, niiIDs, ref.imgPath, maskPath, subF
   # If results should be visualised
   if(visualise){
     # Visualise winning SNPs
-    result.image.by.vox.cut <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, pv.range = scale, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at", log.cutoff), outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI)
-    result.image.by.vox <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, pv.range = scale, afterTitle = "\nno cut-off", outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI)
-    result.image.by.vox.cut.hc <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at ", log.cutoff, "\nhi-contrast", sep = ""), outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI)
-    result.image.by.vox.hc <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, afterTitle = "\nno cut-off\nhi-contrast", outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI)
+    result.image.best.snp <- visualiseSNP(snp.name = sel.snps[1], results = results.by.snp, mask = mask, ref.img = ref.img, pv.range = scale, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at", log.cutoff), outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI)
+
+    result.image.by.vox.cut <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, pv.range = scale, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at", log.cutoff), outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI, crossCoords = result.image.best.snp[[2]])
+    result.image.by.vox <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, pv.range = scale, afterTitle = "\nno cut-off", outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI, crossCoords = result.image.best.snp[[2]])
+    result.image.by.vox.cut.hc <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at ", log.cutoff, "\nhi-contrast", sep = ""), outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI, crossCoords = result.image.best.snp[[2]])
+    result.image.by.vox.hc <- visualiseVox(voxel.min.pv, mask = mask, ref.img = ref.img, afterTitle = "\nno cut-off\nhi-contrast", outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI, crossCoords = result.image.best.snp[[2]])
 
     # Visualise selected SNPs
-    result.images.by.snp.cut <- lapply(X = sel.snps, results = results.by.snp, mask = mask, ref.img = ref.img, pv.range = scale, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at", log.cutoff), outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI, FUN = visualiseSNP)
-    names(result.images.by.snp.cut) <- sel.snps
+    result.images.by.snp.cut <- lapply(X = sel.snps[2:length(sel.snps)], results = results.by.snp, mask = mask, ref.img = ref.img, pv.range = scale, log.cutoff = log.cutoff, afterTitle = paste("\ncut-off at", log.cutoff), outPath = outPath, matPath = matPath, coordsOnly = !saveNIfTI, FUN = visualiseSNP)
+    names(result.images.by.snp.cut) <- sel.snps[2:length(sel.snps)]
+    result.images.by.snp.cut[[sel.snps[1]]] <- result.image.best.snp
+    result.images.by.snp.cut <- result.images.by.snp.cut[sel.snps]
     gc()
     if(!is.null(outPath)){
       # Save best voxel coordinates
       coords <- lapply(X = sel.snps, FUN = function(x){result.images.by.snp.cut[[x]][[2]]})
+      names(coords) <- sel.snps
+      coords <- coords[rownames(report.snps)]
       report.snps <- cbind(report.snps, coords = format(coords))
       write.csv(report.snps, file = paste(outPath, "/sel-snps-", 2^subFactor, ".csv", sep = ""))
       # Save .nii images

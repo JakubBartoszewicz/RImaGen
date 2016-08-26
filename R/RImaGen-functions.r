@@ -142,12 +142,13 @@ visualiseSNP <- function(snp.name, results, mask, ref.img, pv.range = NULL, log.
 #' @param title Plot title.
 #' @param titleSize Title font size.
 #' @param beforeTitle Text to print before the title.
-#' @param afterTitle Text to print after the title.#'
+#' @param afterTitle Text to print after the title.
 #' @param outPath Output path. If \code{NULL} (default) no plot files will be saved.
 #' @param matPath Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.
 #' @param coordsOnly \code{logical}. Set to \code{TRUE} to return coordinates of the best voxel only.
+#' @param crossCoords Coordinate vector for the croshairs. If \code{NULL}, it is set to coordinates of the best voxel after linear registration to reference image. 1-indexed.
 #' @return A list containing the results visualisation image and a vector of coordinates for the max. value voxel.
-visualiseVox <- function(result, mask, ref.img, pv.range = NULL, log.cutoff = 0, plot = TRUE, title = "winning SNP", titleSize = 2, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL, coordsOnly = FALSE){
+visualiseVox <- function(result, mask, ref.img, pv.range = NULL, log.cutoff = 0, plot = TRUE, title = "winning SNP", titleSize = 2, beforeTitle = "-log10 p-values by\n", afterTitle ="", outPath = NULL, matPath = NULL, coordsOnly = FALSE, crossCoords = NULL){
   # Calculate log-negative results
   log.res <- -log10(result)
   if(!is.null(pv.range)){
@@ -194,7 +195,12 @@ visualiseVox <- function(result, mask, ref.img, pv.range = NULL, log.cutoff = 0,
 
     if(length(which(img > 0)) > 0){
       # Throws an error if an image of zeroes
-      coords <- which(img == max(img), arr.ind = TRUE)
+      if(is.null(crossCoords)){
+        coords <- which(img == max(img), arr.ind = TRUE)
+      }
+      else{
+        coords <- crossCoords - 1
+      }
       # Plot results with crosshairs centered at maximum voxel intensity
       fslr::ortho2(ref.img, img, xyz = coords, zlim.y = log.range, text = paste(beforeTitle, title, afterTitle, "\nmax.: ", round(local.max, 2)), text.cex = titleSize)
       if(!is.null(outPath)){
@@ -321,7 +327,7 @@ vGWAS <- function(snpData, voxelData, cvrt, useModel, prescan, errorCovariance =
 #' @param outPath A character string giving the base filename for optional output of QC-ed data. The extensions .bed, .bim, and
 #' .fam are appended to this string to give the filenames of the three output files.
 #' @return \code{\linkS4class{SnpMatrix}} of SNPs passing the quality control
-readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.pval = 5.7e-07, min.group = 7, subjects = NULL, force.snps = NULL, forcedOnly = FALSE, outPath = NULL){
+readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.pval = 5.7e-07, min.group = 8, subjects = NULL, force.snps = NULL, forcedOnly = FALSE, outPath = NULL){
   # Read plink files
   genomes <- snpStats::read.plink(plinkFiles[1], plinkFiles[2], plinkFiles[3])
   # Set row names to subject IDs
@@ -349,8 +355,8 @@ readSNPs <- function(plinkFiles, call.rate.cutoff = 0.95, maf.cutoff = 0.1, hwe.
   if(call.rate.cutoff > 0 | maf.cutoff > 0 | hwe.pval > 0){
     # Perform quality control using provided cutoff values
     csum <- snpStats::col.summary(snps)
-    snps <- snps [,which(csum$Call.rate>=call.rate.cutoff & csum$MAF>=maf.cutoff & 2*pnorm(-abs(csum$z.HWE))>hwe.pval
-                         & csum$P.AA * csum$Calls > min.group & csum$P.AB * csum$Calls > min.group & csum$P.BB * csum$Calls > min.group)]
+    snps <- snps [,which(csum$Call.rate >= call.rate.cutoff & csum$MAF >= maf.cutoff & 2*pnorm(-abs(csum$z.HWE)) > hwe.pval
+                         & round(csum$P.AA * csum$Calls, 0) >= min.group & round(csum$P.AB * csum$Calls, 0) >= min.group & round(csum$P.BB * csum$Calls, 0) >= min.group)]
 
     # Check if forced SNPs passed the QC
     forced <- force.snps[!(force.snps %in% colnames(snps))]

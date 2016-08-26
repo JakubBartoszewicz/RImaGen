@@ -7,7 +7,7 @@
 visualiseVox(result, mask, ref.img, pv.range = NULL, log.cutoff = 0,
   plot = TRUE, title = "winning SNP", titleSize = 2,
   beforeTitle = "-log10 p-values by\\n", afterTitle = "", outPath = NULL,
-  matPath = NULL, coordsOnly = FALSE)
+  matPath = NULL, coordsOnly = FALSE, crossCoords = NULL)
 }
 \arguments{
 \item{result}{Vector of target statistics.}
@@ -28,13 +28,15 @@ visualiseVox(result, mask, ref.img, pv.range = NULL, log.cutoff = 0,
 
 \item{beforeTitle}{Text to print before the title.}
 
-\item{afterTitle}{Text to print after the title.#'}
+\item{afterTitle}{Text to print after the title.}
 
 \item{outPath}{Output path. If \code{NULL} (default) no plot files will be saved.}
 
 \item{matPath}{Path to convolution matrix for coregistration of results to the reference image. Set to \code{NULL} if in the same space.}
 
 \item{coordsOnly}{\code{logical}. Set to \code{TRUE} to return coordinates of the best voxel only.}
+
+\item{crossCoords}{Coordinate vector for the croshairs. If \code{NULL}, it is set to coordinates of the best voxel after linear registration to reference image. 1-indexed.}
 }
 \value{
 A list containing the results visualisation image and a vector of coordinates for the max. value voxel.

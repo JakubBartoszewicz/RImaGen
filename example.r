@@ -1,8 +1,8 @@
 cat("Setting data...\n")
 
 # Set parameters
-subFactor = 1
-model = MatrixEQTL::modelLINEAR
+subFactor = 2
+model = MatrixEQTL::modelANOVA
 top.range = 1:5
 
 # Set paths
@@ -11,9 +11,9 @@ brainPath <- "~/MGR/ADNI/imaging/links"
 ref.imgPath <- "/usr/share/fsl/data/standard/MNI152_T1_2mm.nii.gz"
 maskPath <- "~/MGR/ADNI/imaging/T1_biascorr_brain_mask.nii.gz"
 infoPath <- "~/MGR/ADNI/ADNIMERGE.csv"
-outPath <- paste("~/MGR/OUT_", 2^subFactor, "mm_linear_MNI152_2mm_out", sep = "")
+outPath <- paste("~/MGR/OUT_", 2^subFactor, "mm_anova_MNI152_2mm_out", sep = "")
 # Set path to pre-saved flat ROIs and preliminary analysis results
-mockPath <- paste("~/MGR/OUT_", 2^subFactor, "mm_linear_MNI152_2mm", sep = "")
+mockPath <- paste("~/MGR/OUT_", 2^subFactor, "mm_anova_MNI152_2mm", sep = "")
 mockPath.flatROIs <- paste(mockPath, "/flatROIs-", 2^subFactor, ".R" , sep = "")
 mockPath.pre <- paste(mockPath, "/pre-", 2^subFactor, ".R" , sep = "")
 matPath <- "~/MGR/mdt2mni.mat"
