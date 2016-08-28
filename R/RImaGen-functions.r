@@ -199,7 +199,7 @@ visualiseVox <- function(result, mask, ref.img, pv.range = NULL, log.cutoff = 0,
         coords <- which(img == max(img), arr.ind = TRUE)
       }
       else{
-        coords <- crossCoords - 1
+        coords <- crossCoords + 1
       }
       # Plot results with crosshairs centered at maximum voxel intensity
       fslr::ortho2(ref.img, img, xyz = coords, zlim.y = log.range, text = paste(beforeTitle, title, afterTitle, "\nmax.: ", round(local.max, 2)), text.cex = titleSize)
